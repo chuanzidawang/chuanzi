@@ -1,0 +1,1939 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>串子工具箱</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{
+    --bg:#000;--card:#1c1c1e;--card-2:#2c2c2e;
+    --text:#fff;--text-dim:#8e8e93;
+    --accent:#0a84ff;--green:#30d158;
+    --pink:#ff375f;--orange:#ff9f0a;
+    --purple:#bf5af2;--divider:rgba(255,255,255,.08);
+    --gold:#ffd700;
+  }
+  body.light{
+    --bg:#f2f2f7;--card:#fff;--card-2:#e5e5ea;
+    --text:#000;--text-dim:#6e6e73;--divider:rgba(0,0,0,.08);
+  }
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','PingFang SC',sans-serif;
+    background:var(--bg);color:var(--text);
+    min-height:100vh;-webkit-font-smoothing:antialiased;
+    transition:background .3s,color .3s;
+  }
+  .app{max-width:640px;margin:0 auto;padding:24px 20px 40px;min-height:100vh;display:flex;flex-direction:column}
+
+  .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .menu-btn{background:none;border:none;color:var(--text);font-size:24px;cursor:pointer;padding:4px 8px;border-radius:10px;font-family:inherit}
+  .menu-btn:active{background:var(--card-2)}
+  .user-btn{
+    display:flex;align-items:center;gap:6px;
+    background:var(--card);border:none;color:var(--text);
+    padding:6px 12px;border-radius:20px;font-size:13px;font-weight:500;
+    cursor:pointer;font-family:inherit;
+  }
+  .user-btn:active{background:var(--card-2)}
+  .user-btn .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+  .user-btn .dot.off{background:var(--text-dim);box-shadow:none}
+
+  .header{margin-bottom:32px;padding-top:20px}
+  .header h1{font-size:34px;font-weight:700;letter-spacing:-0.5px;line-height:1.1}
+  .header .sub{font-size:15px;color:var(--text-dim);margin-top:6px;letter-spacing:-0.2px}
+
+  .tools{display:flex;flex-direction:column;gap:12px;flex:1}
+  .tool{
+    display:flex;align-items:center;gap:16px;padding:18px 20px;
+    background:var(--card);border-radius:20px;text-decoration:none;color:var(--text);
+    transition:transform .15s cubic-bezier(0.34,1.56,0.64,1),background .15s;
+    cursor:pointer;user-select:none;
+  }
+  .tool:active{transform:scale(.97);background:var(--card-2)}
+  .tool .icon{
+    width:52px;height:52px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:26px;flex-shrink:0;color:#fff;
+    box-shadow:0 4px 12px rgba(0,0,0,.3);
+  }
+  .tool .icon.blue{background:linear-gradient(135deg,#0a84ff,#5ac8fa)}
+  .tool .icon.purple{background:linear-gradient(135deg,#bf5af2,#da8fff)}
+  .tool .icon.green{background:linear-gradient(135deg,#30d158,#7ee89b)}
+  .tool .icon.orange{background:linear-gradient(135deg,#ff9f0a,#ffcf5c)}
+  .tool .icon.teal{background:linear-gradient(135deg,#0e7490,#5ac8fa)}
+  .tool .icon.gray{background:linear-gradient(135deg,#48484a,#8e8e93)}
+  .tool .text{flex:1;min-width:0}
+  .tool .title{font-size:17px;font-weight:600;letter-spacing:-0.3px}
+  .tool .desc{font-size:13px;color:var(--text-dim);margin-top:2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tool .arrow{color:var(--text-dim);font-size:18px;flex-shrink:0;transition:transform .2s}
+  .tool:active .arrow{transform:translateX(3px)}
+  .tool.disabled{opacity:.45;cursor:not-allowed}
+  .tool.disabled:active{transform:none;background:var(--card)}
+
+  .footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px}
+
+  /* 侧边栏 */
+  .drawer-mask{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:998;opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(4px)}
+  .drawer-mask.show{opacity:1;pointer-events:auto}
+  .drawer{
+    position:fixed;top:0;left:0;bottom:0;width:82%;max-width:340px;
+    background:var(--card);z-index:999;transform:translateX(-100%);
+    transition:transform .3s cubic-bezier(0.34,1.2,0.64,1);
+    display:flex;flex-direction:column;box-shadow:4px 0 30px rgba(0,0,0,.5);overflow-y:auto;
+  }
+  .drawer.show{transform:translateX(0)}
+  .drawer-header{padding:44px 24px 20px;border-bottom:1px solid var(--divider)}
+  .drawer-header h2{font-size:26px;font-weight:700;letter-spacing:-0.5px}
+  .drawer-header .sub{font-size:13px;color:var(--text-dim);margin-top:4px}
+  .setting-group{padding:16px 24px 8px}
+  .setting-group .group-title{font-size:12px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+  .setting-item{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--divider);gap:12px}
+  .setting-item:last-child{border-bottom:none}
+  .setting-item .label{font-size:15px;color:var(--text);font-weight:500}
+  .setting-item .value{font-size:14px;color:var(--text-dim)}
+  .segmented{display:flex;background:var(--card-2);border-radius:10px;padding:3px;gap:2px}
+  .segmented button{background:none;border:none;padding:6px 10px;border-radius:8px;font-size:13px;font-weight:500;color:var(--text-dim);cursor:pointer;font-family:inherit;white-space:nowrap}
+  .segmented button.active{background:var(--card);color:var(--text);box-shadow:0 2px 6px rgba(0,0,0,.2)}
+  .switch{position:relative;width:50px;height:30px;background:var(--card-2);border-radius:30px;cursor:pointer;transition:background .3s;flex-shrink:0}
+  .switch::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;background:#fff;border-radius:50%;transition:transform .3s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 2px 6px rgba(0,0,0,.3)}
+  .switch.on{background:var(--green)}
+  .switch.on::after{transform:translateX(20px)}
+
+  /* 登录弹窗 */
+  .modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);padding:20px;overflow-y:auto}
+  .modal-mask.show{display:flex}
+  .modal{
+    background:var(--card);width:100%;max-width:420px;
+    border-radius:24px;padding:28px 24px;
+    animation:scaleIn .3s cubic-bezier(0.34,1.2,0.64,1);
+    max-height:90vh;overflow-y:auto;position:relative;
+  }
+  @keyframes scaleIn{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+  .modal h2{font-size:22px;font-weight:700;text-align:center;margin-bottom:6px}
+  .modal p{font-size:14px;color:var(--text-dim);text-align:center;margin-bottom:20px}
+  .modal input{
+    width:100%;padding:14px 18px;background:var(--card-2);
+    border:1.5px solid transparent;border-radius:14px;
+    color:var(--text);font-size:16px;outline:none;
+    font-family:inherit;margin-bottom:10px;
+    transition:border-color .2s;
+  }
+  .modal input:focus{border-color:var(--accent)}
+  .modal .btn{
+    width:100%;padding:16px;border:none;border-radius:14px;
+    font-size:16px;font-weight:600;cursor:pointer;
+    font-family:inherit;transition:transform .1s;
+    margin-bottom:8px;letter-spacing:-0.2px;
+  }
+  .modal .btn:active{transform:scale(.97)}
+  .modal .btn-primary{background:var(--accent);color:#fff}
+  .modal .btn-secondary{background:var(--card-2);color:var(--text)}
+  .modal .err{color:var(--pink);font-size:13px;text-align:center;min-height:18px;margin-bottom:6px}
+
+  .pay-section{background:var(--card-2);border-radius:16px;padding:16px;margin-bottom:16px;text-align:center}
+  .pay-section .pay-title{font-size:14px;font-weight:600;color:var(--gold);margin-bottom:4px;display:flex;align-items:center;justify-content:center;gap:6px}
+  .pay-section .pay-desc{font-size:12px;color:var(--text-dim);line-height:1.5;margin-bottom:12px}
+  .pay-section .qr-wrap{background:#fff;border-radius:12px;padding:10px;display:inline-block;margin-bottom:10px}
+  .pay-section .qr-wrap img{width:180px;height:180px;display:block;object-fit:contain}
+  .pay-section .qr-placeholder{width:180px;height:180px;display:flex;align-items:center;justify-content:center;background:#f0f0f0;color:#999;font-size:13px;text-align:center;padding:20px;line-height:1.5}
+  .pay-section .pay-note{font-size:11px;color:var(--text-dim);line-height:1.5;margin-top:8px}
+  .pay-divider{display:flex;align-items:center;gap:10px;margin:16px 0 12px;font-size:12px;color:var(--text-dim)}
+  .pay-divider::before,.pay-divider::after{content:'';flex:1;height:1px;background:var(--divider)}
+
+  .loading{text-align:center;padding:60px 20px;color:var(--text-dim)}
+  .lang-mini{position:absolute;top:16px;right:16px;display:flex;gap:4px;background:var(--card-2);border-radius:20px;padding:2px}
+  .lang-mini button{background:none;border:none;padding:4px 8px;border-radius:16px;font-size:11px;font-weight:500;color:var(--text-dim);cursor:pointer;font-family:inherit}
+  .lang-mini button.active{background:var(--card);color:var(--text)}
+
+  .tool-page{position:fixed;inset:0;background:var(--bg);z-index:500;display:none;flex-direction:column}
+  .tool-page.show{display:flex}
+  .tool-page .close-btn{position:absolute;top:max(12px, env(safe-area-inset-top));right:12px;z-index:10;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:20px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;backdrop-filter:blur(10px)}
+  .tool-page .close-btn:active{background:rgba(0,0,0,.8)}
+  .tool-page .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+</style>
+</head>
+<body>
+
+<div class="modal-mask show" id="loadingMask">
+  <div class="modal" style="text-align:center">
+    <div class="loading" data-i18n="connecting">正在连接服务器...</div>
+  </div>
+</div>
+
+<div class="app" id="app" style="display:none">
+  <div class="top-bar">
+    <button class="menu-btn" id="menuBtn">☰</button>
+    <button class="user-btn" id="userBtn">
+      <span class="dot off" id="userDot"></span>
+      <span id="userLabel" data-i18n="not_logged_in">未登录</span>
+    </button>
+  </div>
+
+  <div class="header">
+    <h1 data-i18n="app_title">串子工具箱</h1>
+    <div class="sub" data-i18n="app_subtitle">所有工具，一处在手</div>
+  </div>
+
+  <div class="tools">
+    <div class="tool" data-tool="hunxiao">
+      <div class="icon blue">🔐</div>
+      <div class="text">
+        <div class="title" data-i18n="tool_hunxiao">图像加密解密</div>
+        <div class="desc" data-i18n="tool_hunxiao_desc">空间填充曲线混淆 · 多层叠加</div>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+    <div class="tool" data-tool="shequ">
+      <div class="icon green">💬</div>
+      <div class="text">
+        <div class="title" data-i18n="tool_shequ">串子社区</div>
+        <div class="desc" data-i18n="tool_shequ_desc">发帖 · 点赞 · 评论</div>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+    <div class="tool" data-tool="zhexue">
+      <div class="icon orange">📜</div>
+      <div class="text">
+        <div class="title" data-i18n="tool_zhexue">哲学抽卡</div>
+        <div class="desc" data-i18n="tool_zhexue_desc">抽一张卡 · 读一句哲学</div>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+    <div class="tool" data-tool="memo">
+      <div class="icon teal">📝</div>
+      <div class="text">
+        <div class="title" data-i18n="tool_memo">备忘录</div>
+        <div class="desc" data-i18n="tool_memo_desc">随手记 · 本地保存</div>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+    <div class="tool" data-tool="gongshi">
+  <div class="icon purple">📖</div>
+  <div class="text">
+    <div class="title">公式速查</div>
+    <div class="desc">高中物理公式 · 搜索速查</div>
+  </div>
+  <div class="arrow">›</div>
+</div>
+<div class="tool" data-tool="zhuiji">
+  <div class="icon orange">📐</div>
+  <div class="text">
+    <div class="title">追及相遇计算器</div>
+    <div class="desc">高中物理 · 运动学 · 带 v-t 图</div>
+  </div>
+  <div class="arrow">›</div>
+</div>
+<div class="tool" data-tool="jiabaogao">
+  <div class="icon" style="background:linear-gradient(135deg,#c0392b,#e74c3c)">📋</div>
+  <div class="text">
+    <div class="title">假报告生成器</div>
+    <div class="desc">红头文件 · 一本正经胡说八道</div>
+  </div>
+  <div class="arrow">›</div>
+</div>
+<div class="tool" data-tool="muzhiming">
+  <div class="icon gray">🪦</div>
+  <div class="text">
+    <div class="title">赛博墓志铭</div>
+    <div class="desc">三种风格 · 给自己刻块碑</div>
+  </div>
+  <div class="arrow">›</div>
+</div>
+    <div class="tool disabled">
+      <div class="icon gray">➕</div>
+      <div class="text">
+        <div class="title" data-i18n="tool_more">更多功能</div>
+        <div class="desc" data-i18n="tool_more_desc">待添加…</div>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+  </div>
+
+  <div class="footer" data-i18n="footer">串子工具箱 · v1.0</div>
+</div>
+
+<div class="drawer-mask" id="drawerMask"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <h2 data-i18n="settings">设置</h2>
+    <div class="sub" data-i18n="settings_sub">调整偏好</div>
+  </div>
+  <div class="setting-group">
+    <div class="group-title" data-i18n="group_language">语言</div>
+    <div class="setting-item">
+      <div class="label" data-i18n="language_label">界面语言</div>
+      <div class="segmented" id="langSegmented">
+        <button data-lang="zh" class="active">简体</button>
+        <button data-lang="en">English</button>
+        <button data-lang="zh-TW">繁體</button>
+      </div>
+    </div>
+  </div>
+  <div class="setting-group">
+    <div class="group-title" data-i18n="group_theme">外观</div>
+    <div class="setting-item">
+      <div class="label" data-i18n="theme_label">白天模式</div>
+      <div class="switch" id="themeSwitch"></div>
+    </div>
+  </div>
+  <div class="setting-group">
+    <div class="group-title" data-i18n="group_about">关于</div>
+    <div class="setting-item">
+      <div class="label" data-i18n="version_label">版本</div>
+      <div class="value">v1.0</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="modalMask">
+  <div class="modal">
+    <div class="lang-mini" id="langMini">
+      <button data-lang="zh" class="active">简</button>
+      <button data-lang="en">EN</button>
+      <button data-lang="zh-TW">繁</button>
+    </div>
+    <h2 data-i18n="login_title">登录</h2>
+    <p data-i18n="login_desc">用社区账号解锁工具箱</p>
+    <div class="pay-section">
+  <div class="pay-title">💰 <span data-i18n="pay_title">3.99 元 / 账号</span></div>
+  <div class="pay-desc" data-i18n="pay_desc">添加下方微信，转账 3.99 元后即可获取账号密码</div>
+
+  <div style="background:#fff;border-radius:12px;padding:16px 20px;display:inline-block;margin-bottom:10px;min-width:240px">
+    <div style="font-size:12px;color:#666;margin-bottom:6px;letter-spacing:1px">微信 ID</div>
+    <div id="wxIdText" style="font-size:19px;font-weight:700;color:#07c160;font-family:'SF Mono',Consolas,monospace;letter-spacing:1px;user-select:all">owo10111111010</div>
+  </div>
+
+  <button id="wxCopyBtn" style="display:block;width:100%;max-width:280px;margin:0 auto 10px;padding:12px;border:none;border-radius:12px;background:#07c160;color:#fff;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer">📋 复制微信号</button>
+
+  <div class="pay-note" data-i18n="pay_note">付款后发送截图，即刻发放账号密码，全程人工处理</div>
+</div>
+    <div class="pay-divider" data-i18n="pay_divider">已有账号？直接登录</div>
+    <input type="email" id="modalEmail" placeholder="邮箱" autocomplete="email">
+    <input type="password" id="modalPassword" placeholder="密码" autocomplete="current-password">
+    <div class="err" id="modalErr"></div>
+    <button class="btn btn-primary" id="modalOk" data-i18n="login_btn">登录</button>
+    <button class="btn btn-secondary" id="modalCancel" data-i18n="cancel">取消</button>
+  </div>
+</div>
+
+<div class="tool-page" id="toolPage">
+  <button class="close-btn" id="closeToolBtn">✕ 关闭</button>
+  <div class="content" id="toolContent"></div>
+</div>
+
+<script type="module">
+const SUPABASE_URL = 'https://szidgknejphbblpgqxjy.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_M6tegF--7ani4ZMYg3vSpQ_CINHeVZN';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+window.__supabase_client = supabase;
+
+const TRANSLATIONS = {
+  zh: { app_title:'串子工具箱',app_subtitle:'所有工具，一处在手',tool_hunxiao:'图像加密解密',tool_hunxiao_desc:'空间填充曲线混淆 · 多层叠加',tool_music:'画音',tool_music_desc:'画线即发声 · 高度决定音调',tool_shequ:'串子社区',tool_shequ_desc:'发帖 · 点赞 · 评论',tool_zhexue:'哲学抽卡',tool_zhexue_desc:'抽一张卡 · 读一句哲学',tool_memo:'备忘录',tool_memo_desc:'随手记 · 本地保存',tool_more:'更多功能',tool_more_desc:'待添加…',settings:'设置',settings_sub:'调整偏好',group_language:'语言',language_label:'界面语言',group_theme:'外观',theme_label:'白天模式',group_about:'关于',version_label:'版本',login_title:'登录',login_desc:'用社区账号解锁工具箱',pay_title:'3.99 元 = 1 个账号',pay_desc:'扫码付款后，截图私信制作人，领取账号密码',qr_placeholder:'请把收款码图片\n命名为「收款码.png」\n放到工具箱文件夹',pay_note:'付款后联系制作人，出示付款截图，秒发账号',pay_divider:'已有账号？直接登录',login_btn:'登录',cancel:'取消',not_logged_in:'未登录',logged_in:'已登录',connecting:'正在连接服务器...',footer:'串子工具箱 · v1.0',err_empty:'请输入邮箱和密码',err_logging_in:'登录中...',err_need_login:'请先登录' },
+  en: { app_title:'Chuanzi Toolbox',app_subtitle:'All tools in one place',tool_hunxiao:'Image Encrypt/Decrypt',tool_hunxiao_desc:'Space-filling curve · Multi-layer',tool_music:'Draw Music',tool_music_desc:'Draw to play · Pitch by height',tool_shequ:'Chuanzi Community',tool_shequ_desc:'Post · Like · Comment',tool_zhexue:'Philosophy Cards',tool_zhexue_desc:'Draw a card · Read a quote',tool_memo:'Memo',tool_memo_desc:'Quick notes · Local save',tool_more:'More',tool_more_desc:'Coming soon…',settings:'Settings',settings_sub:'Preferences',group_language:'Language',language_label:'Interface language',group_theme:'Appearance',theme_label:'Light mode',group_about:'About',version_label:'Version',login_title:'Sign In',login_desc:'Unlock with your account',pay_title:'3.99 CNY = 1 Account',pay_desc:'Pay via QR code, screenshot to the maker, get your account',qr_placeholder:'Please put your payment QR code\nas "收款码.png"\nin the toolbox folder',pay_note:'After payment, contact the maker to get your account',pay_divider:'Already have an account? Sign in',login_btn:'Sign In',cancel:'Cancel',not_logged_in:'Guest',logged_in:'Signed In',connecting:'Connecting to server...',footer:'Chuanzi Toolbox · v1.0',err_empty:'Please enter email and password',err_logging_in:'Signing in...',err_need_login:'Please sign in first' },
+  'zh-TW': { app_title:'串子工具箱',app_subtitle:'所有工具，一處在手',tool_hunxiao:'圖像加密解密',tool_hunxiao_desc:'空間填充曲線混淆 · 多層疊加',tool_music:'畫音',tool_music_desc:'畫線即發聲 · 高度決定音調',tool_shequ:'串子社區',tool_shequ_desc:'發帖 · 點讚 · 評論',tool_zhexue:'哲學抽卡',tool_zhexue_desc:'抽一張卡 · 讀一句哲學',tool_memo:'備忘錄',tool_memo_desc:'隨手記 · 本地保存',tool_more:'更多功能',tool_more_desc:'待新增…',settings:'設定',settings_sub:'調整偏好',group_language:'語言',language_label:'介面語言',group_theme:'外觀',theme_label:'白天模式',group_about:'關於',version_label:'版本',login_title:'登入',login_desc:'用社區帳號解鎖工具箱',pay_title:'3.99元 = 1 個帳號',pay_desc:'掃碼付款後，截圖私訊製作人，領取帳號密碼',qr_placeholder:'請把收款碼圖片\n命名為「收款碼.png」\n放到工具箱資料夾',pay_note:'付款後聯繫製作人，出示付款截圖，秒發帳號',pay_divider:'已有帳號？直接登入',login_btn:'登入',cancel:'取消',not_logged_in:'未登入',logged_in:'已登入',connecting:'正在連接伺服器...',footer:'串子工具箱 · v1.0',err_empty:'請輸入郵箱和密碼',err_logging_in:'登入中...',err_need_login:'請先登入' }
+};
+
+let currentLang = localStorage.getItem('qzwd_lang') || 'zh';
+function t(key){ return (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) || TRANSLATIONS.zh[key] || key; }
+function applyLang(){
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+  document.querySelectorAll('#langSegmented button, #langMini button').forEach(b => { b.classList.toggle('active', b.dataset.lang === currentLang); });
+  updateUserUI();
+}
+
+let isLight = localStorage.getItem('qzwd_theme') === 'light';
+function applyTheme(){ document.body.classList.toggle('light', isLight); document.getElementById('themeSwitch').classList.toggle('on', isLight); }
+
+const loadingMask = document.getElementById('loadingMask');
+const app = document.getElementById('app');
+const userBtn = document.getElementById('userBtn');
+const userLabel = document.getElementById('userLabel');
+const userDot = document.getElementById('userDot');
+const modalMask = document.getElementById('modalMask');
+const modalEmail = document.getElementById('modalEmail');
+const modalPassword = document.getElementById('modalPassword');
+const modalErr = document.getElementById('modalErr');
+const modalOk = document.getElementById('modalOk');
+const modalCancel = document.getElementById('modalCancel');
+const drawer = document.getElementById('drawer');
+const drawerMask = document.getElementById('drawerMask');
+const toolPage = document.getElementById('toolPage');
+const toolContent = document.getElementById('toolContent');
+const closeToolBtn = document.getElementById('closeToolBtn');
+let currentUser = null;
+
+function updateUserUI(){
+  if(currentUser){ userLabel.textContent = currentUser.email.split('@')[0]; userDot.classList.remove('off'); }
+  else{ userLabel.textContent = t('not_logged_in'); userDot.classList.add('off'); }
+}
+function showApp(){ loadingMask.classList.remove('show'); app.style.display = 'flex'; updateUserUI(); }
+function openLoginModal(){ modalEmail.value=''; modalPassword.value=''; modalErr.textContent=''; modalMask.classList.add('show'); setTimeout(()=>modalEmail.focus(),300); }
+function closeLoginModal(){ modalMask.classList.remove('show'); }
+
+async function doLogin(){
+  const email = modalEmail.value.trim();
+  const password = modalPassword.value;
+  if(!email || !password){ modalErr.textContent = t('err_empty'); return; }
+  modalErr.textContent = t('err_logging_in');
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if(error){ modalErr.textContent = '❌ ' + error.message; return; }
+  currentUser = data.user; closeLoginModal(); showApp();
+}
+async function doLogout(){ await supabase.auth.signOut(); currentUser = null; updateUserUI(); }
+
+function openTool(name){
+const openers = { hunxiao:()=>window.__open_hunxiao(toolContent), music:()=>window.__open_music(toolContent), shequ:()=>window.__open_shequ(toolContent), zhexue:()=>window.__open_zhexue(toolContent), memo:()=>window.__open_memo(toolContent), gongshi:()=>window.__open_gongshi(toolContent), zhuiji:()=>window.__open_zhuiji(toolContent), jiabaogao:()=>window.__open_jiabaogao(toolContent), muzhiming:()=>window.__open_muzhiming(toolContent) };
+  const opener = openers[name];
+  if(!opener){ alert('工具不存在'); return; }
+  toolContent.innerHTML = '';
+  opener();
+  toolPage.classList.add('show');
+}
+function closeTool(){ toolPage.classList.remove('show'); toolContent.innerHTML = ''; }
+
+document.getElementById('menuBtn').addEventListener('click', () => { drawer.classList.add('show'); drawerMask.classList.add('show'); });
+drawerMask.addEventListener('click', () => { drawer.classList.remove('show'); drawerMask.classList.remove('show'); });
+document.getElementById('themeSwitch').addEventListener('click', () => { isLight = !isLight; localStorage.setItem('qzwd_theme', isLight ? 'light' : 'dark'); applyTheme(); });
+document.getElementById('langSegmented').addEventListener('click', e => { const btn = e.target.closest('button'); if(!btn) return; currentLang = btn.dataset.lang; localStorage.setItem('qzwd_lang', currentLang); applyLang(); });
+document.getElementById('langMini').addEventListener('click', e => { const btn = e.target.closest('button'); if(!btn) return; currentLang = btn.dataset.lang; localStorage.setItem('qzwd_lang', currentLang); applyLang(); });
+userBtn.addEventListener('click', () => { if(currentUser){ if(confirm('退出登录？')) doLogout(); } else { openLoginModal(); } });
+modalOk.addEventListener('click', doLogin);
+modalPassword.addEventListener('keydown', e => { if(e.key === 'Enter') doLogin(); });
+modalCancel.addEventListener('click', closeLoginModal);
+document.querySelectorAll('.tool').forEach(el => { el.addEventListener('click', () => { if(el.classList.contains('disabled')) return; if(!currentUser){ openLoginModal(); return; } openTool(el.dataset.tool); }); });
+closeToolBtn.addEventListener('click', closeTool);
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && toolPage.classList.contains('show')) closeTool(); });
+
+applyTheme();
+applyLang();
+const { data: { session } } = await supabase.auth.getSession();
+if(session){ currentUser = session.user; showApp(); }
+else{ loadingMask.classList.remove('show'); app.style.display = 'flex'; updateUserUI(); openLoginModal(); }
+supabase.auth.onAuthStateChange((event, session) => { if(session){ currentUser = session.user; updateUserUI(); } else { currentUser = null; updateUserUI(); } });
+</script>
+
+<!-- ============================================================ -->
+<!-- 下面追加工具整合脚本 -->
+<!-- ============================================================ -->
+<script>
+window.__open_hunxiao = function(container){
+  container.innerHTML = `<div style="padding:16px;max-width:640px;margin:0 auto">
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button id="hnTabNormal" style="flex:1;padding:10px;border-radius:10px;border:none;background:#2c2c2e;color:#fff;font-weight:600;font-family:inherit">普通加密</button>
+      <button id="hnTabUltra" style="flex:1;padding:10px;border-radius:10px;border:none;background:#1c1c1e;color:#8e8e93;font-weight:600;font-family:inherit">终极加密</button>
+    </div>
+    <div id="hnModeDesc" style="background:#1c1c1e;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#8e8e93;line-height:1.6">基于广义 Gilbert 曲线 + 黄金分割偏移，单层混淆。</div>
+    <div style="background:rgba(255,159,10,.12);border:1px solid rgba(255,159,10,.5);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;color:#ff9f0a;line-height:1.7">⚠️ <strong>如果解出来模糊：</strong>99% 是对方没有发原图。请让对方用「文件」方式重发。</div>
+    <div style="position:relative;background:#1c1c1e;border-radius:18px;overflow:hidden;margin-bottom:12px">
+      <canvas id="hnCanvas" width="600" height="400" style="display:block;width:100%;height:auto;background:#1e1e1e"></canvas>
+      <div id="hnEmptyTip" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#8e8e93;font-size:14px;text-align:center;padding:40px 20px;pointer-events:none">
+        <div style="font-size:40px;margin-bottom:8px;opacity:.6">🖼</div>
+        <strong style="color:#fff;display:block;margin-bottom:4px;font-size:15px">点击下方按钮导入</strong>
+      </div>
+      <div id="hnBusy" style="position:absolute;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px">
+        <div style="width:32px;height:32px;border:3px solid rgba(255,255,255,.2);border-top-color:#0a84ff;border-radius:50%;animation:hnSpin .8s linear infinite"></div>
+        <div id="hnBusyText" style="color:#fff;font-size:14px">处理中…</div>
+      </div>
+    </div>
+    <style>@keyframes hnSpin{to{transform:rotate(360deg)}}</style>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+<input type="file" id="hnFile" accept="image/*" style="display:none">
+<label for="hnFile" style="flex:1;padding:14px;border-radius:14px;background:#0a84ff;color:#fff;font-size:15px;font-weight:600;text-align:center;cursor:pointer;display:block;user-select:none">📂 选择图片</label>
+  <button id="hnClear" style="flex:1;padding:14px;border-radius:14px;background:#ff375f;color:#fff;font-size:15px;font-weight:600;border:none;font-family:inherit">🗑 清空</button>
+</div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button id="hnEnc" style="flex:1;padding:14px;border-radius:14px;background:#bf5af2;color:#fff;font-size:15px;font-weight:600;border:none;font-family:inherit">🔒 加密</button>
+      <button id="hnDec" style="flex:1;padding:14px;border-radius:14px;background:#30d158;color:#fff;font-size:15px;font-weight:600;border:none;font-family:inherit">🔓 解密</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button id="hnSave" style="flex:1;padding:14px;border-radius:14px;background:#30d158;color:#fff;font-size:15px;font-weight:600;border:none;font-family:inherit">💾 保存</button>
+    </div>
+    <div id="hnLog" style="font-family:monospace;font-size:11px;color:#8e8e93;background:#1c1c1e;padding:10px 12px;border-radius:10px;max-height:80px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;line-height:1.5">准备就绪</div>
+  </div>`;
+
+  const canvas = container.querySelector('#hnCanvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const emptyTip = container.querySelector('#hnEmptyTip');
+  const busyMask = container.querySelector('#hnBusy');
+  const busyText = container.querySelector('#hnBusyText');
+  const logEl = container.querySelector('#hnLog');
+  const modeDesc = container.querySelector('#hnModeDesc');
+  const tabNormal = container.querySelector('#hnTabNormal');
+  const tabUltra = container.querySelector('#hnTabUltra');
+
+  let originalImageData = null, currentImageData = null, currentMode = 'normal', busy = false;
+
+  function log(msg){ logEl.textContent = msg + '\n' + logEl.textContent; if(logEl.textContent.length > 600) logEl.textContent = logEl.textContent.slice(0, 600); }
+  function setBusy(on, text){ busy = on; busyMask.style.display = on ? 'flex' : 'none'; if(text) busyText.textContent = text; }
+  function render(data){ canvas.width = data.width; canvas.height = data.height; ctx.putImageData(data, 0, 0); emptyTip.style.display = 'none'; }
+
+  function sign(x){ return x > 0 ? 1 : (x < 0 ? -1 : 0); }
+  function g2d(x, y, ax, ay, bx, by, coords){
+    const w = Math.abs(ax + ay), h = Math.abs(bx + by);
+    const dax = sign(ax), day = sign(ay), dbx = sign(bx), dby = sign(by);
+    if(h === 1){ for(let i = 0; i < w; i++){ coords.push([x, y]); x += dax; y += day; } return; }
+    if(w === 1){ for(let i = 0; i < h; i++){ coords.push([x, y]); x += dbx; y += dby; } return; }
+    let ax2 = Math.floor(ax/2), ay2 = Math.floor(ay/2);
+    let bx2 = Math.floor(bx/2), by2 = Math.floor(by/2);
+    const w2 = Math.abs(ax2 + ay2), h2 = Math.abs(bx2 + by2);
+    if(2 * w > 3 * h){
+      if((w2 % 2) && (w > 2)){ ax2 += dax; ay2 += day; }
+      g2d(x, y, ax2, ay2, bx, by, coords);
+      g2d(x + ax2, y + ay2, ax - ax2, ay - ay2, bx, by, coords);
+    } else {
+      if((h2 % 2) && (h > 2)){ bx2 += dbx; by2 += dby; }
+      g2d(x, y, bx2, by2, ax2, ay2, coords);
+      g2d(x + bx2, y + by2, ax, ay, bx - bx2, by - by2, coords);
+      g2d(x + (ax - dax) + (bx2 - dbx), y + (ay - day) + (by2 - dby), -bx2, -by2, -(ax - ax2), -(ay - ay2), coords);
+    }
+  }
+  function gilbert2d(width, height){
+    const coords = [];
+    if(width >= height) g2d(0, 0, width, 0, 0, height, coords);
+    else g2d(0, 0, 0, height, width, 0, coords);
+    return coords;
+  }
+  function snake2d(width, height){
+    const coords = [];
+    for(let y = 0; y < height; y++){
+      if(y % 4 < 2){
+        if(y % 2 === 0){ for(let x = 0; x < width; x++) coords.push([x, y]); }
+        else{ for(let x = width - 1; x >= 0; x--) coords.push([x, y]); }
+      }else{
+        if(y % 2 === 0){ for(let x = width - 1; x >= 0; x--) coords.push([x, y]); }
+        else{ for(let x = 0; x < width; x++) coords.push([x, y]); }
+      }
+    }
+    return coords;
+  }
+  function archimedeanSpiral(width, height){
+    const coords = [];
+    const cx = Math.floor(width / 2), cy = Math.floor(height / 2);
+    const maxR = Math.sqrt(cx*cx + cy*cy);
+    const totalPixels = width * height;
+    const visited = new Uint8Array(totalPixels);
+    const spacing = 0.5;
+    for(let s = 0; s < 100000; s++){
+      const angle = s * 0.1; const r = s * 0.1 * spacing;
+      if(r > maxR * 1.5) break;
+      const x = Math.round(cx + r * Math.cos(angle));
+      const y = Math.round(cy + r * Math.sin(angle));
+      if(x < 0 || x >= width || y < 0 || y >= height) continue;
+      const idx = y * width + x; if(visited[idx]) continue;
+      visited[idx] = 1; coords.push([x, y]);
+    }
+    for(let y = 0; y < height; y++) for(let x = 0; x < width; x++){
+      const idx = y * width + x;
+      if(!visited[idx]){ visited[idx] = 1; coords.push([x, y]); }
+    }
+    return coords;
+  }
+  function logSpiral(width, height){
+    const coords = [];
+    const cx = Math.floor(width / 2), cy = Math.floor(height / 2);
+    const maxR = Math.sqrt(cx*cx + cy*cy);
+    const totalPixels = width * height;
+    const visited = new Uint8Array(totalPixels);
+    const b = 0.15; let a = 1;
+    const thetaMax = Math.log(maxR / a) / b;
+    for(let s = 0; s < 100000; s++){
+      const theta = s * 0.05; if(theta > thetaMax * 1.5) break;
+      const r = a * Math.exp(b * theta);
+      const x = Math.round(cx + r * Math.cos(theta));
+      const y = Math.round(cy + r * Math.sin(theta));
+      if(x < 0 || x >= width || y < 0 || y >= height) continue;
+      const idx = y * width + x; if(visited[idx]) continue;
+      visited[idx] = 1; coords.push([x, y]);
+    }
+    for(let y = 0; y < height; y++) for(let x = 0; x < width; x++){
+      const idx = y * width + x;
+      if(!visited[idx]){ visited[idx] = 1; coords.push([x, y]); }
+    }
+    return coords;
+  }
+  function remapPixels(srcData, curve, offset, reverse){
+    const W = srcData.width, H = srcData.height, total = W * H;
+    const src = srcData.data;
+    const dst = new Uint8ClampedArray(src.length);
+    offset = ((offset % total) + total) % total;
+    for(let i = 0; i < total; i++){
+      let srcPos, dstPos;
+      if(reverse){ const shifted = (i + offset) % total; srcPos = curve[shifted]; dstPos = curve[i]; }
+      else{ const shifted = (i + offset) % total; srcPos = curve[i]; dstPos = curve[shifted]; }
+      const sp = (srcPos[1] * W + srcPos[0]) * 4;
+      const dp = (dstPos[1] * W + dstPos[0]) * 4;
+      dst[dp] = src[sp]; dst[dp+1] = src[sp+1]; dst[dp+2] = src[sp+2]; dst[dp+3] = src[sp+3];
+    }
+    const out = ctx.createImageData(W, H); out.data.set(dst); return out;
+  }
+  function normalProcess(srcData, decrypt){
+    const W = srcData.width, H = srcData.height, total = W * H;
+    const curve = gilbert2d(W, H);
+    const baseOffset = Math.round(0.6180339887498949 * total);
+    return remapPixels(srcData, curve, baseOffset, decrypt);
+  }
+  function ultraProcess(srcData, decrypt){
+    const W = srcData.width, H = srcData.height, total = W * H;
+    const layers = [
+      { curve: archimedeanSpiral(W, H), offset: Math.round(0.618 * total) },
+      { curve: snake2d(W, H), offset: Math.round(0.382 * total) },
+      { curve: gilbert2d(W, H), offset: Math.round(0.5 * total) },
+      { curve: logSpiral(W, H), offset: Math.round(0.236 * total) }
+    ];
+    let cur = srcData;
+    const order = decrypt ? [3, 2, 1, 0] : [0, 1, 2, 3];
+    for(const idx of order) cur = remapPixels(cur, layers[idx].curve, layers[idx].offset, decrypt);
+    return cur;
+  }
+  function processImage(decrypt){
+    if(!originalImageData){ alert('请先导入图片'); return; }
+    if(busy) return;
+    setBusy(true, decrypt ? '解密中…' : '加密中…');
+    setTimeout(() => {
+      try{
+        const result = currentMode === 'normal' ? normalProcess(originalImageData, decrypt) : ultraProcess(originalImageData, decrypt);
+        render(result); currentImageData = result;
+        log((decrypt ? '🔓 解密完成' : '🔒 加密完成') + ' · ' + (currentMode === 'ultra' ? '终极加密' : '普通加密'));
+      }catch(e){ log('❌ 失败：' + e.message); }
+      setBusy(false);
+    }, 30);
+  }
+  function loadImageFromBlob(blob){
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const w = img.naturalWidth, h = img.naturalHeight;
+        canvas.width = w; canvas.height = h;
+        ctx.clearRect(0, 0, w, h); ctx.drawImage(img, 0, 0);
+        originalImageData = ctx.getImageData(0, 0, w, h);
+        currentImageData = originalImageData;
+        render(currentImageData); log(`✅ 导入成功：${w}×${h}`);
+      };
+      img.onerror = () => log('❌ 图片加载失败');
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(blob);
+  }
+container.querySelector('label[for="hnFile"]').addEventListener('click', function(ev){
+  // 让 label 默认行为触发 input（大多数浏览器都行），不行再手动 click
+  setTimeout(() => {
+    const inp = container.querySelector('#hnFile');
+    if(inp && document.activeElement !== inp){ try{ inp.click(); }catch(e){} }
+  }, 50);
+});
+  container.querySelector('#hnFile').addEventListener('change', function(e){
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  loadImageFromBlob(f); setTimeout(() => this.value = '', 500);
+});
+  container.querySelector('#hnEnc').addEventListener('click', () => processImage(false));
+  container.querySelector('#hnDec').addEventListener('click', () => processImage(true));
+  container.querySelector('#hnClear').addEventListener('click', () => { ctx.clearRect(0, 0, canvas.width, canvas.height); originalImageData = null; currentImageData = null; emptyTip.style.display = 'flex'; log('🗑 已清空'); });
+  container.querySelector('#hnSave').addEventListener('click', () => {
+    if(!currentImageData){ alert('没有图片可保存'); return; }
+    try{ const a = document.createElement('a'); a.download = '加密结果.png'; a.href = canvas.toDataURL('image/png'); a.click(); log('💾 已保存'); }catch(err){ alert('保存失败'); }
+  });
+  tabNormal.addEventListener('click', () => { if(currentMode === 'normal') return; currentMode = 'normal'; tabNormal.style.background = '#2c2c2e'; tabNormal.style.color = '#fff'; tabUltra.style.background = '#1c1c1e'; tabUltra.style.color = '#8e8e93'; modeDesc.innerHTML = '基于广义 Gilbert 曲线 + 黄金分割偏移，单层混淆。'; log('切换到普通加密'); });
+  tabUltra.addEventListener('click', () => { if(currentMode === 'ultra') return; currentMode = 'ultra'; tabUltra.style.background = 'linear-gradient(135deg,#bf5af2,#ff375f)'; tabUltra.style.color = '#fff'; tabNormal.style.background = '#1c1c1e'; tabNormal.style.color = '#8e8e93'; modeDesc.innerHTML = '四层曲线叠加加密，强度远高于普通版。'; log('切换到终极加密'); });
+  log('图像加密已加载');
+};
+
+window.__open_memo = function(container){
+  container.innerHTML = `<div style="padding:16px;max-width:640px;margin:0 auto">
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button id="meNew" style="flex:1;padding:14px;border-radius:14px;background:#0a84ff;color:#fff;font-size:15px;font-weight:600;border:none;font-family:inherit">+ 新建</button>
+      <button id="meClearAll" style="flex:1;padding:14px;border-radius:14px;background:#1c1c1e;color:#fff;font-size:15px;font-weight:600;border:none;font-family:inherit">清空</button>
+    </div>
+    <div id="meEditor" style="background:#1c1c1e;border-radius:16px;padding:16px;margin-bottom:12px;display:none">
+      <input id="meEditTitle" placeholder="标题" style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid transparent;background:#2c2c2e;color:#fff;font-size:15px;font-family:inherit;outline:none;margin-bottom:10px">
+      <textarea id="meEditContent" placeholder="写点什么..." style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid transparent;background:#2c2c2e;color:#fff;font-size:15px;font-family:inherit;outline:none;margin-bottom:10px;min-height:180px;resize:vertical"></textarea>
+      <div style="display:flex;gap:8px">
+        <button id="meSaveBtn" style="flex:1;padding:14px;border-radius:14px;background:#0a84ff;color:#fff;font-size:15px;font-weight:600;border:none;font-family:inherit">保存</button>
+        <button id="meCancelBtn" style="flex:1;padding:14px;border-radius:14px;background:#2c2c2e;color:#fff;font-size:15px;font-weight:600;border:none;font-family:inherit">取消</button>
+      </div>
+    </div>
+    <div id="meList"></div>
+  </div>`;
+
+  const STORAGE_KEY = 'qzwd_memos';
+  const list = container.querySelector('#meList');
+  const editor = container.querySelector('#meEditor');
+  const editTitle = container.querySelector('#meEditTitle');
+  const editContent = container.querySelector('#meEditContent');
+  let editingId = null;
+
+  function loadMemos(){ try{ const d = localStorage.getItem(STORAGE_KEY); return d ? JSON.parse(d) : []; }catch(e){ return []; } }
+  function saveMemos(m){ localStorage.setItem(STORAGE_KEY, JSON.stringify(m)); }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function formatTime(ts){ const d = new Date(ts), now = new Date(), diff = (now - d) / 1000; if(diff < 60) return '刚刚'; if(diff < 3600) return Math.floor(diff / 60) + ' 分钟前'; if(diff < 86400) return Math.floor(diff / 3600) + ' 小时前'; return d.toLocaleDateString() + ' ' + d.toLocaleTimeString().slice(0,5); }
+
+  function render(){
+    const memos = loadMemos();
+    memos.sort((a, b) => { if(a.pinned && !b.pinned) return -1; if(!a.pinned && b.pinned) return 1; return b.updatedAt - a.updatedAt; });
+    if(memos.length === 0){ list.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#8e8e93"><div style="font-size:60px;margin-bottom:16px;opacity:.4">📝</div><div style="font-size:15px">还没有备忘录</div></div>'; return; }
+    list.innerHTML = '';
+    for(const m of memos){
+      const div = document.createElement('div');
+      div.style.cssText = 'background:#1c1c1e;border-radius:16px;padding:16px;margin-bottom:10px;cursor:pointer;border-left:' + (m.pinned ? '3px solid #ff9f0a' : 'none');
+      div.innerHTML = `<div style="font-size:16px;font-weight:600;margin-bottom:6px;word-break:break-word">${escapeHtml(m.title || '无标题')}${m.pinned ? ' <span style="font-size:10px;background:#ff9f0a;color:#fff;padding:2px 6px;border-radius:20px;margin-left:6px">📌</span>' : ''}</div><div style="font-size:13px;color:#8e8e93;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${escapeHtml(m.content || '（空）')}</div><div style="font-size:11px;color:#8e8e93;margin-top:8px">${formatTime(m.updatedAt)}</div>`;
+      div.addEventListener('click', () => openDetail(m.id));
+      list.appendChild(div);
+    }
+  }
+  function openEditor(id){
+    editingId = id;
+    if(id){ const m = loadMemos().find(x => x.id === id); if(m){ editTitle.value = m.title || ''; editContent.value = m.content || ''; } }
+    else { editTitle.value = ''; editContent.value = ''; }
+    editor.style.display = 'block'; setTimeout(() => editTitle.focus(), 200);
+  }
+  function closeEditor(){ editor.style.display = 'none'; editingId = null; }
+  function saveMemo(){
+    const title = editTitle.value.trim(), content = editContent.value.trim();
+    if(!title && !content){ alert('写点什么吧'); return; }
+    const memos = loadMemos();
+    if(editingId){ const m = memos.find(x => x.id === editingId); if(m){ m.title = title; m.content = content; m.updatedAt = Date.now(); } }
+    else { memos.push({ id: Date.now() + Math.random(), title, content, pinned: false, createdAt: Date.now(), updatedAt: Date.now() }); }
+    saveMemos(memos); closeEditor(); render();
+  }
+  function openDetail(id){
+    const memos = loadMemos(); const m = memos.find(x => x.id === id); if(!m) return;
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:2000;padding:20px';
+    modal.innerHTML = `<div style="background:#1c1c1e;width:100%;max-width:480px;border-radius:20px;padding:24px;max-height:80vh;overflow-y:auto"><h2 style="font-size:20px;font-weight:700;margin-bottom:6px;word-break:break-word">${escapeHtml(m.title || '无标题')}</h2><div style="font-size:12px;color:#8e8e93;margin-bottom:16px">${formatTime(m.updatedAt)}</div><div style="font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word;margin-bottom:20px">${escapeHtml(m.content || '（空）')}</div><div style="display:flex;gap:8px"><button data-act="pin" style="flex:1;padding:14px;border-radius:14px;background:#2c2c2e;color:#fff;border:none;font-family:inherit">${m.pinned ? '取消置顶' : '置顶'}</button><button data-act="edit" style="flex:1;padding:14px;border-radius:14px;background:#2c2c2e;color:#fff;border:none;font-family:inherit">编辑</button><button data-act="delete" style="flex:1;padding:14px;border-radius:14px;background:#2c2c2e;color:#ff375f;border:none;font-family:inherit">删除</button><button data-act="close" style="flex:1;padding:14px;border-radius:14px;background:#0a84ff;color:#fff;border:none;font-family:inherit">关闭</button></div></div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => {
+      if(e.target === modal){ modal.remove(); return; }
+      const btn = e.target.closest('[data-act]'); if(!btn) return;
+      const act = btn.dataset.act;
+      if(act === 'close') modal.remove();
+      else if(act === 'edit'){ modal.remove(); openEditor(id); }
+      else if(act === 'pin'){ m.pinned = !m.pinned; m.updatedAt = Date.now(); saveMemos(memos); render(); modal.remove(); }
+      else if(act === 'delete'){ if(!confirm('确定删除？')) return; saveMemos(memos.filter(x => x.id !== id)); render(); modal.remove(); }
+    });
+  }
+  container.querySelector('#meNew').addEventListener('click', () => openEditor(null));
+  container.querySelector('#meSaveBtn').addEventListener('click', saveMemo);
+  container.querySelector('#meCancelBtn').addEventListener('click', closeEditor);
+  container.querySelector('#meClearAll').addEventListener('click', () => { const memos = loadMemos(); if(memos.length === 0) return; if(!confirm('确定清空？')) return; saveMemos([]); render(); });
+  render();
+};
+</script>
+<script>
+// ============================================================
+// 【工具整合脚本 2】画音 + 社区 + 哲学抽卡
+// ============================================================
+
+window.__open_shequ = function(container){
+  container.innerHTML = `<div style="padding:16px;max-width:640px;margin:0 auto">
+    <div id="sqLoginBox" style="background:#1c1c1e;border-radius:18px;padding:24px;margin-bottom:12px">
+      <h2 style="font-size:18px;margin-bottom:16px;color:#fff">请登录</h2>
+      <input id="sqEmail" placeholder="邮箱" type="email" style="width:100%;padding:14px 16px;border-radius:12px;border:1.5px solid transparent;background:#2c2c2e;color:#fff;font-size:15px;font-family:inherit;outline:none;margin-bottom:10px">
+      <input id="sqPassword" placeholder="密码" type="password" style="width:100%;padding:14px 16px;border-radius:12px;border:1.5px solid transparent;background:#2c2c2e;color:#fff;font-size:15px;font-family:inherit;outline:none;margin-bottom:10px">
+      <button id="sqLoginBtn" style="width:100%;padding:14px;border-radius:12px;border:none;background:#0a84ff;color:#fff;font-size:15px;font-weight:600;font-family:inherit">登录</button>
+      <div id="sqLoginMsg" style="font-size:13px;color:#ff375f;text-align:center;margin-top:8px"></div>
+    </div>
+    <div id="sqMain" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;background:#1c1c1e;border-radius:14px;padding:12px 16px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:#fff">
+          <div id="sqAvatar" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#0a84ff,#5ac8fa);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px">?</div>
+          <span id="sqUserEmail">已登录</span>
+        </div>
+        <button id="sqLogout" style="padding:6px 12px;border-radius:20px;background:transparent;color:#ff375f;border:1px solid #ff375f;font-size:13px;font-family:inherit">退出</button>
+      </div>
+      <div style="background:#1c1c1e;border-radius:16px;padding:14px;margin-bottom:16px">
+        <input id="sqAuthor" placeholder="昵称（不填就是匿名）" style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid transparent;background:#2c2c2e;color:#fff;font-size:15px;font-family:inherit;outline:none;margin-bottom:10px">
+        <textarea id="sqContent" placeholder="说点什么..." style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid transparent;background:#2c2c2e;color:#fff;font-size:15px;font-family:inherit;outline:none;margin-bottom:10px;min-height:80px;resize:vertical"></textarea>
+        <button id="sqSend" style="width:100%;padding:14px;border-radius:12px;border:none;background:#0a84ff;color:#fff;font-size:15px;font-weight:600;font-family:inherit">发布</button>
+      </div>
+      <div id="sqList"></div>
+      <div id="sqStatus" style="text-align:center;color:#8e8e93;font-size:12px;padding:20px"></div>
+    </div>
+  </div>`;
+
+  const supabase = window.__supabase_client;
+  if(!supabase){ alert('Supabase 未初始化'); return; }
+  let currentUser = null, isAdmin = false;
+
+  async function init(){
+    const { data: { session } } = await supabase.auth.getSession();
+    if(session){ currentUser = session.user; await checkAdmin(); showMain(); await loadPosts(); setInterval(loadPosts, 5000); }
+    else showLogin();
+  }
+  async function login(){
+    const email = container.querySelector('#sqEmail').value.trim();
+    const password = container.querySelector('#sqPassword').value;
+    const msg = container.querySelector('#sqLoginMsg');
+    if(!email || !password){ msg.textContent = '请输入邮箱和密码'; return; }
+    msg.textContent = '登录中...';
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if(error){ msg.textContent = '❌ ' + error.message; return; }
+    currentUser = data.user; await checkAdmin(); showMain(); await loadPosts(); setInterval(loadPosts, 5000);
+  }
+  async function checkAdmin(){ const { data } = await supabase.from('admins').select('user_id').eq('user_id', currentUser.id).maybeSingle(); isAdmin = !!data; }
+  function showMain(){
+    container.querySelector('#sqLoginBox').style.display = 'none';
+    container.querySelector('#sqMain').style.display = 'block';
+    const email = currentUser.email;
+    container.querySelector('#sqUserEmail').textContent = email + (isAdmin ? ' 👑' : '');
+    container.querySelector('#sqAvatar').textContent = email[0].toUpperCase();
+  }
+  function showLogin(){ container.querySelector('#sqLoginBox').style.display = 'block'; container.querySelector('#sqMain').style.display = 'none'; }
+  async function logout(){ await supabase.auth.signOut(); currentUser = null; isAdmin = false; showLogin(); }
+  async function post(){
+    const author = container.querySelector('#sqAuthor').value.trim() || '匿名';
+    const content = container.querySelector('#sqContent').value.trim();
+    if(!content){ alert('说点什么吧'); return; }
+    const { error } = await supabase.from('posts').insert({ author, content });
+    if(error){ alert('发布失败：' + error.message); return; }
+    container.querySelector('#sqContent').value = '';
+    await loadPosts();
+  }
+  async function likePost(id, currentLikes){ const { error } = await supabase.from('posts').update({ likes: (currentLikes || 0) + 1 }).eq('id', id); if(!error) await loadPosts(); }
+  async function pinPost(id, isPinned){ if(!isAdmin){ alert('只有管理员能置顶'); return; } const { error } = await supabase.from('posts').update({ is_pinned: !isPinned }).eq('id', id); if(!error) await loadPosts(); }
+  async function addComment(postId){
+    const input = container.querySelector('#sqCommentInput-' + postId);
+    const content = input.value.trim(); if(!content) return;
+    const author = container.querySelector('#sqAuthor').value.trim() || '匿名';
+    const { error } = await supabase.from('comments').insert({ post_id: postId, author, content });
+    if(error){ alert('评论失败：' + error.message); return; }
+    input.value = ''; await loadPosts();
+  }
+  async function loadComments(postId, el){
+    const { data: comments } = await supabase.from('comments').select('*').eq('post_id', postId).order('created_at', { ascending: true });
+    el.innerHTML = '';
+    if(!comments || comments.length === 0) return;
+    for(const c of comments){
+      const div = document.createElement('div');
+      div.style.cssText = 'display:flex;gap:8px;padding:6px 0;font-size:13px;line-height:1.5';
+      div.innerHTML = `<span style="color:#0a84ff;font-weight:600;flex-shrink:0">${escapeHtml(c.author)}</span><span style="color:#fff;word-break:break-word;flex:1">${escapeHtml(c.content)}</span>`;
+      el.appendChild(div);
+    }
+  }
+  async function loadPosts(){
+    const { data: posts, error } = await supabase.from('posts').select('*').order('is_pinned', { ascending: false }).order('created_at', { ascending: false }).limit(50);
+    if(error){ container.querySelector('#sqStatus').textContent = '加载失败：' + error.message; return; }
+    const list = container.querySelector('#sqList'); list.innerHTML = '';
+    if(posts.length === 0){ list.innerHTML = '<div style="text-align:center;color:#8e8e93;font-size:12px;padding:20px">还没有人发帖</div>'; return; }
+    for(const p of posts){
+      const div = document.createElement('div');
+      div.style.cssText = 'background:#1c1c1e;border-radius:16px;padding:16px;margin-bottom:10px;' + (p.is_pinned ? 'border:2px solid #0a84ff' : '');
+      const canDelete = (currentUser && p.user_id === currentUser.id) || isAdmin;
+      const firstChar = (p.author || '匿')[0].toUpperCase();
+      const color = getAvatarColor(p.author || '匿名');
+      div.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div style="width:32px;height:32px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;color:#fff;flex-shrink:0">${firstChar}</div>
+          <span style="font-size:14px;font-weight:600;color:#fff">${escapeHtml(p.author)}</span>
+          ${p.is_pinned ? '<span style="font-size:11px;background:#0a84ff;color:#fff;padding:2px 8px;border-radius:20px;font-weight:600">📌 置顶</span>' : ''}
+          <span style="font-size:12px;color:#8e8e93;margin-left:auto">${formatTime(p.created_at)}</span>
+        </div>
+        <div style="font-size:15px;line-height:1.6;color:#fff;white-space:pre-wrap;word-break:break-word;margin-bottom:12px">${escapeHtml(p.content)}</div>
+        <div style="display:flex;gap:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);flex-wrap:wrap">
+          <button data-act="like" data-id="${p.id}" data-likes="${p.likes || 0}" style="background:none;border:none;display:flex;align-items:center;gap:4px;font-size:13px;color:#8e8e93;padding:6px 10px;border-radius:8px;font-family:inherit">❤️ ${p.likes || 0}</button>
+          <button data-act="comment" data-id="${p.id}" style="background:none;border:none;font-size:13px;color:#8e8e93;padding:6px 10px;border-radius:8px;font-family:inherit">💬 评论</button>
+          ${isAdmin ? `<button data-act="pin" data-id="${p.id}" data-pinned="${p.is_pinned}" style="background:none;border:none;font-size:13px;color:#8e8e93;padding:6px 10px;border-radius:8px;font-family:inherit">📌 ${p.is_pinned ? '取消置顶' : '置顶'}</button>` : ''}
+          ${canDelete ? `<button data-act="delete" data-id="${p.id}" style="background:none;border:none;font-size:13px;color:#ff375f;padding:6px 10px;border-radius:8px;font-family:inherit">删除</button>` : ''}
+        </div>
+        <div id="sqComments-${p.id}" style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);display:none"></div>
+        <div id="sqCommentBox-${p.id}" style="display:none;margin-top:8px">
+          <input id="sqCommentInput-${p.id}" placeholder="写评论..." style="width:100%;padding:8px 12px;border-radius:12px;border:1.5px solid transparent;background:#2c2c2e;color:#fff;font-size:13px;font-family:inherit;outline:none;margin-bottom:6px">
+             <button data-act="send-comment" data-id="${p.id}" style="padding:8px 16px;border-radius:12px;border:none;background:#0a84ff;color:#fff;font-size:13px;font-weight:600;font-family:inherit">发送</button>
+        </div>`;
+      list.appendChild(div);
+      await loadComments(p.id, div.querySelector('#sqComments-' + p.id));
+    }
+    list.querySelectorAll('[data-act]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const act = btn.dataset.act, id = btn.dataset.id;
+        if(act === 'like') await likePost(id, parseInt(btn.dataset.likes));
+        else if(act === 'comment'){
+          const c = container.querySelector('#sqComments-' + id);
+          const b = container.querySelector('#sqCommentBox-' + id);
+          c.style.display = c.style.display === 'none' ? 'block' : 'none';
+          b.style.display = b.style.display === 'none' ? 'block' : 'none';
+        }
+        else if(act === 'pin') await pinPost(id, btn.dataset.pinned === 'true');
+        else if(act === 'delete'){
+          if(!confirm('确定删除？')) return;
+          const { error } = await supabase.from('posts').delete().eq('id', id);
+          if(error){ alert('删除失败：' + error.message); return; }
+          await loadPosts();
+        }
+        else if(act === 'send-comment') await addComment(id);
+      });
+    });
+    container.querySelector('#sqStatus').textContent = '共 ' + posts.length + ' 条 · 5 秒自动刷新';
+  }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function formatTime(iso){ const d = new Date(iso), now = new Date(), diff = (now - d) / 1000; if(diff < 60) return '刚刚'; if(diff < 3600) return Math.floor(diff / 60) + ' 分钟前'; if(diff < 86400) return Math.floor(diff / 3600) + ' 小时前'; return d.toLocaleDateString() + ' ' + d.toLocaleTimeString().slice(0,5); }
+  function getAvatarColor(name){ const colors = ['#0a84ff','#30d158','#ff375f','#ff9f0a','#bf5af2','#5ac8fa','#ff6b9d','#64d2ff']; let hash = 0; for(let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash); return colors[Math.abs(hash) % colors.length]; }
+
+  container.querySelector('#sqLoginBtn').addEventListener('click', login);
+  container.querySelector('#sqPassword').addEventListener('keydown', e => { if(e.key === 'Enter') login(); });
+  container.querySelector('#sqLogout').addEventListener('click', logout);
+  container.querySelector('#sqSend').addEventListener('click', post);
+  init();
+};
+window.__open_zhexue = function(container){
+  container.innerHTML = `
+    <div style="padding:16px;max-width:640px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:#000">
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;perspective:1200px;margin-bottom:20px">
+        <div id="zhCard" style="width:100%;max-width:380px;aspect-ratio:3/4;border-radius:28px;position:relative;transform-style:preserve-3d;transition:transform .8s cubic-bezier(0.34,1.2,0.64,1);cursor:pointer;box-shadow:0 20px 60px -20px rgba(0,0,0,.6)">
+          <div id="zhCardBack" style="position:absolute;inset:0;border-radius:28px;backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;background:linear-gradient(135deg,#1c1c1e 0%,#2c2c2e 100%);border:2px solid rgba(255,255,255,.1)">
+            <div style="font-size:80px;margin-bottom:20px">📜</div>
+            <div style="font-size:16px;color:rgba(255,255,255,.6);text-align:center;line-height:1.6"><b style="color:#fff;font-weight:600">点卡片抽取</b><br>一张卡，一句哲学</div>
+          </div>
+          <div id="zhCardFront" style="position:absolute;inset:0;border-radius:28px;backface-visibility:hidden;transform:rotateY(180deg);display:none;flex-direction:column;padding:32px 28px;justify-content:space-between;overflow:hidden">
+            <div id="zhRarity" style="position:absolute;top:20px;right:20px;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:1px;background:rgba(255,255,255,.2);color:#fff;backdrop-filter:blur(10px)">N</div>
+            <div style="font-size:100px;line-height:.8;color:rgba(255,255,255,.25);font-family:Georgia,serif;position:relative;z-index:1">"</div>
+            <div id="zhQuote" style="font-size:24px;line-height:1.7;color:#fff;font-weight:500;letter-spacing:-0.3px;position:relative;z-index:1;text-shadow:0 2px 12px rgba(0,0,0,.2);flex:1;display:flex;align-items:center"></div>
+            <div id="zhAuthor" style="font-size:15px;color:rgba(255,255,255,.85);text-align:right;position:relative;z-index:1;font-weight:500"></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:12px">
+        <button id="zhDraw" style="flex:1;padding:16px;border-radius:16px;border:none;background:linear-gradient(135deg,#bf5af2,#0a84ff);color:#fff;font-size:16px;font-weight:600;font-family:inherit">🎴 抽卡</button>
+        <button id="zhShare" disabled style="flex:1;padding:16px;border-radius:16px;border:none;background:#1c1c1e;color:#fff;font-size:16px;font-weight:600;font-family:inherit;opacity:.5">📤 分享</button>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button id="zhReset" style="flex:1;padding:16px;border-radius:16px;border:none;background:#2c2c2e;color:#fff;font-size:16px;font-weight:600;font-family:inherit">↺ 重置</button>
+      </div>
+    </div>`;
+
+  const QUOTES = [
+    { text: '我思故我在。', author: '笛卡尔', rarity: 'N' },
+    { text: '认识你自己。', author: '德尔斐神庙', rarity: 'N' },
+    { text: '上善若水。', author: '老子', rarity: 'N' },
+    { text: '知行合一。', author: '王阳明', rarity: 'N' },
+    { text: '己所不欲，勿施于人。', author: '孔子', rarity: 'N' },
+    { text: '千里之行，始于足下。', author: '老子', rarity: 'N' },
+    { text: '大音希声，大象无形。', author: '老子', rarity: 'N' },
+    { text: '相濡以沫，不如相忘于江湖。', author: '庄子', rarity: 'N' },
+    { text: '子非鱼，安知鱼之乐？', author: '庄子', rarity: 'N' },
+    { text: '吾生也有涯，而知也无涯。', author: '庄子', rarity: 'N' },
+    { text: '三人行，必有我师焉。', author: '孔子', rarity: 'N' },
+    { text: '人是万物的尺度。', author: '普罗泰戈拉', rarity: 'R' },
+    { text: '人是被判定为自由的。', author: '萨特', rarity: 'R' },
+    { text: '存在先于本质。', author: '萨特', rarity: 'R' },
+    { text: '他人即地狱。', author: '萨特', rarity: 'R' },
+    { text: '人是一根会思想的芦苇。', author: '帕斯卡', rarity: 'R' },
+    { text: '未经审视的生活不值得过。', author: '苏格拉底', rarity: 'R' },
+    { text: '我唯一知道的，就是我一无所知。', author: '苏格拉底', rarity: 'R' },
+    { text: '人不能两次踏进同一条河流。', author: '赫拉克利特', rarity: 'R' },
+    { text: '祸兮福之所倚，福兮祸之所伏。', author: '老子', rarity: 'R' },
+    { text: '路漫漫其修远兮，吾将上下而求索。', author: '屈原', rarity: 'R' },
+    { text: '采菊东篱下，悠然见南山。', author: '陶渊明', rarity: 'R' },
+    { text: '天生我材必有用，千金散尽还复来。', author: '李白', rarity: 'R' },
+    { text: '会当凌绝顶，一览众山小。', author: '杜甫', rarity: 'R' },
+    { text: '人生自古谁无死，留取丹心照汗青。', author: '文天祥', rarity: 'R' },
+    { text: '先天下之忧而忧，后天下之乐而乐。', author: '范仲淹', rarity: 'R' },
+    { text: '但愿人长久，千里共婵娟。', author: '苏轼', rarity: 'R' },
+    { text: '上帝已死。', author: '尼采', rarity: 'SR' },
+    { text: '那些杀不死我的，使我更强大。', author: '尼采', rarity: 'SR' },
+    { text: '与怪物战斗的人，应当小心自己不要成为怪物。', author: '尼采', rarity: 'SR' },
+    { text: '每一个不曾起舞的日子，都是对生命的辜负。', author: '尼采', rarity: 'SR' },
+    { text: '当你凝视深渊时，深渊也在凝视着你。', author: '尼采', rarity: 'SR' },
+    { text: '你拥有的东西，也在拥有你。', author: '塞内加', rarity: 'SR' },
+    { text: '自由不是想做什么就做什么，而是不想做什么就可以不做。', author: '康德', rarity: 'SR' },
+    { text: '人不能只靠面包活着。', author: '陀思妥耶夫斯基', rarity: 'SR' },
+    { text: '要爱具体的人，不要爱抽象的人。', author: '陀思妥耶夫斯基', rarity: 'SR' },
+    { text: '幸福的家庭都是相似的，不幸的家庭各有各的不幸。', author: '托尔斯泰', rarity: 'SR' },
+    { text: '破山中贼易，破心中贼难。', author: '王阳明', rarity: 'SR' },
+    { text: '为天地立心，为生民立命，为往圣继绝学，为万世开太平。', author: '张载', rarity: 'SR' },
+    { text: '竹杖芒鞋轻胜马，谁怕？一蓑烟雨任平生。', author: '苏轼', rarity: 'SR' },
+    { text: '众里寻他千百度，蓦然回首，那人却在，灯火阑珊处。', author: '辛弃疾', rarity: 'SR' },
+    { text: '纸上得来终觉浅，绝知此事要躬行。', author: '陆游', rarity: 'SR' },
+    { text: '山重水复疑无路，柳暗花明又一村。', author: '陆游', rarity: 'SR' },
+    { text: '世界上只有一种英雄主义，就是看清生活的真相之后依然热爱生活。', author: '罗曼·罗兰', rarity: 'SSR' },
+    { text: '不要问丧钟为谁而鸣，它就为你而鸣。', author: '海明威', rarity: 'SSR' },
+    { text: '一个人可以被毁灭，但不能被打败。', author: '海明威', rarity: 'SSR' },
+    { text: '所有命运赠送的礼物，早已在暗中标好了价格。', author: '茨威格', rarity: 'SSR' },
+    { text: '只有用心才能看得清。真正重要的东西，用眼睛是看不见的。', author: '圣埃克苏佩里', rarity: 'SSR' },
+    { text: '所有的大人都曾经是小孩，虽然，只有少数的人记得。', author: '圣埃克苏佩里', rarity: 'SSR' },
+    { text: '从前的日色变得慢，车，马，邮件都慢，一生只够爱一个人。', author: '木心', rarity: 'SSR' },
+    { text: '岁月不饶人，我亦未曾饶过岁月。', author: '木心', rarity: 'SSR' },
+    { text: '面朝大海，春暖花开。', author: '海子', rarity: 'SSR' },
+    { text: '黑夜给了我黑色的眼睛，我却用它寻找光明。', author: '顾城', rarity: 'SSR' },
+    { text: '我们所有人都在阴沟里，但仍有人仰望星空。', author: '王尔德', rarity: 'SSR' },
+    { text: '做你自己，因为别人都有人做了。', author: '王尔德', rarity: 'SSR' },
+    { text: '无穷的远方，无数的人们，都与我有关。', author: '鲁迅', rarity: 'SSR' },
+    { text: '不在沉默中爆发，就在沉默中灭亡。', author: '鲁迅', rarity: 'SSR' },
+    { text: '从来如此，便对吗？', author: '鲁迅', rarity: 'SSR' },
+    { text: '其实地上本没有路，走的人多了，也便成了路。', author: '鲁迅', rarity: 'SSR' }
+  ];
+
+  const RARITY_RATE = { 'N': 60, 'R': 25, 'SR': 12, 'SSR': 3 };
+  function rollRarity(){
+    const total = Object.values(RARITY_RATE).reduce((a,b) => a+b, 0);
+    let r = Math.random() * total;
+    for(const [k, w] of Object.entries(RARITY_RATE)){ r -= w; if(r <= 0) return k; }
+    return 'N';
+  }
+  function drawCard(){
+    const r = rollRarity();
+    const pool = QUOTES.filter(q => q.rarity === r);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  let audioCtx = null;
+  function initAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if(audioCtx.state === 'suspended') audioCtx.resume(); }
+  function playSound(rarity){
+    if(!audioCtx) return;
+    const t = audioCtx.currentTime;
+    let freqs = [];
+    if(rarity === 'SSR') freqs = [523.25, 659.25, 783.99, 1046.5];
+    else if(rarity === 'SR') freqs = [392, 523.25];
+    else if(rarity === 'R') freqs = [440];
+    else freqs = [220];
+    freqs.forEach((freq, i) => {
+      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+      osc.type = rarity === 'N' ? 'square' : 'sine'; osc.frequency.value = freq;
+      const start = t + i * 0.08;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(rarity === 'N' ? 0.05 : 0.15, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.01, start + 0.4);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(start); osc.stop(start + 0.5);
+    });
+  }
+
+  const card = container.querySelector('#zhCard');
+  const cardBack = container.querySelector('#zhCardBack');
+  const cardFront = container.querySelector('#zhCardFront');
+  const quoteEl = container.querySelector('#zhQuote');
+  const authorEl = container.querySelector('#zhAuthor');
+  const rarityEl = container.querySelector('#zhRarity');
+  const drawBtn = container.querySelector('#zhDraw');
+  const shareBtn = container.querySelector('#zhShare');
+  const resetBtn = container.querySelector('#zhReset');
+  let currentQuote = null, isDrawing = false;
+
+  function doDraw(){
+    if(isDrawing) return;
+    isDrawing = true; initAudio();
+    const q = drawCard(); currentQuote = q;
+    playSound(q.rarity);
+    cardBack.style.display = 'none'; cardFront.style.display = 'flex';
+    const bgMap = { 'N':'linear-gradient(135deg,#48484a,#8e8e93)','R':'linear-gradient(135deg,#0a84ff,#5ac8fa)','SR':'linear-gradient(135deg,#bf5af2,#ff375f)','SSR':'linear-gradient(135deg,#ff9f0a,#ffd700,#ff375f)' };
+    cardFront.style.background = bgMap[q.rarity];
+    quoteEl.textContent = q.text; authorEl.textContent = '—— ' + q.author; rarityEl.textContent = q.rarity;
+    setTimeout(() => card.style.transform = 'rotateY(180deg)', 100);
+    shareBtn.disabled = false; shareBtn.style.opacity = '1';
+    drawBtn.disabled = true; drawBtn.textContent = '已抽取';
+    setTimeout(() => { isDrawing = false; }, 1000);
+  }
+  function doReset(){
+    card.style.transform = '';
+    setTimeout(() => {
+      cardBack.style.display = 'flex'; cardFront.style.display = 'none';
+      currentQuote = null; shareBtn.disabled = true; shareBtn.style.opacity = '.5';
+      drawBtn.disabled = false; drawBtn.textContent = '🎴 抽卡';
+    }, 400);
+  }
+  async function shareQuote(){
+    if(!currentQuote) return;
+    const text = `【${currentQuote.rarity}】"${currentQuote.text}" —— ${currentQuote.author}`;
+       try{ await navigator.clipboard.writeText(text); alert('✅ 已复制，去社区粘贴吧'); }
+    catch(e){ alert('复制失败：' + e.message); }
+  }
+  card.addEventListener('click', () => { if(!currentQuote) doDraw(); });
+  drawBtn.addEventListener('click', doDraw);
+  resetBtn.addEventListener('click', doReset);
+  shareBtn.addEventListener('click', shareQuote);
+};
+</script>
+<script>
+// ============================================================
+// 公式速查 —— 独立模块
+// ============================================================
+window.__open_gongshi = function(container){
+  container.innerHTML = `
+    <div style="padding:16px;max-width:640px;margin:0 auto;padding-bottom:40px">
+      <div style="position:sticky;top:0;z-index:5;background:#000;padding:4px 0 12px;margin-bottom:8px">
+        <input id="gsSearch" placeholder="🔍 搜索公式，如「匀加速」「向心力」「动量守恒」" style="width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid transparent;background:#1c1c1e;color:#fff;font-size:15px;font-family:inherit;outline:none;margin-bottom:10px">
+        <div id="gsTabs" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch"></div>
+      </div>
+      <div id="gsList"></div>
+    </div>`;
+
+  const FORMULAS = [
+    { cat:'运动学', name:'匀变速速度公式', latex:'v = v₀ + at', symbols:'v:末速度(m/s) v₀:初速度(m/s) a:加速度(m/s²) t:时间(s)', note:'匀变速直线运动' },
+    { cat:'运动学', name:'匀变速位移公式', latex:'x = v₀t + ½at²', symbols:'x:位移(m) v₀:初速度 a:加速度 t:时间', note:'匀变速直线运动' },
+    { cat:'运动学', name:'速度位移公式', latex:'v² − v₀² = 2ax', symbols:'v:末速度 v₀:初速度 a:加速度 x:位移', note:'不含时间时用' },
+    { cat:'运动学', name:'平均速度公式', latex:'v̄ = (v₀+v)/2 = x/t', symbols:'v̄:平均速度 x:位移 t:时间', note:'仅匀变速适用' },
+    { cat:'运动学', name:'自由落体', latex:'h = ½gt², v = gt', symbols:'h:下落高度(m) g:重力加速度 t:时间(s)', note:'初速为0' },
+    { cat:'运动学', name:'竖直上抛', latex:'h = v₀t − ½gt²', symbols:'h:高度 v₀:初速度 g:重力加速度 t:时间', note:'上升时间=下降时间' },
+
+    { cat:'力学', name:'牛顿第二定律', latex:'F = ma', symbols:'F:合外力(N) m:质量(kg) a:加速度(m/s²)', note:'矢量式，方向与合力相同' },
+    { cat:'力学', name:'重力', latex:'G = mg', symbols:'G:重力(N) m:质量(kg) g:重力加速度', note:'g≈9.8m/s²' },
+    { cat:'力学', name:'滑动摩擦力', latex:'f = μN', symbols:'f:摩擦力(N) μ:动摩擦因数 N:正压力(N)', note:'与接触面积无关' },
+    { cat:'力学', name:'胡克定律', latex:'F = kx', symbols:'F:弹力(N) k:劲度系数(N/m) x:形变量(m)', note:'弹性限度内' },
+    { cat:'力学', name:'共点力平衡', latex:'ΣF = 0', symbols:'合力为零', note:'正交分解：ΣFx=0, ΣFy=0' },
+
+    { cat:'曲线运动', name:'平抛水平', latex:'x = v₀t', symbols:'x:水平位移 v₀:初速度 t:时间', note:'水平方向匀速' },
+    { cat:'曲线运动', name:'平抛竖直', latex:'y = ½gt², vᵧ = gt', symbols:'y:竖直位移 vᵧ:竖直速度', note:'竖直方向自由落体' },
+    { cat:'曲线运动', name:'线速度', latex:'v = ωr = 2πr/T', symbols:'v:线速度 ω:角速度 r:半径 T:周期', note:'圆周运动' },
+    { cat:'曲线运动', name:'向心加速度', latex:'a = v²/r = ω²r', symbols:'a:向心加速度 v:线速度 ω:角速度 r:半径', note:'方向指向圆心' },
+    { cat:'曲线运动', name:'向心力', latex:'F = mv²/r = mω²r', symbols:'F:向心力(N) m:质量 v:线速度 r:半径', note:'由合外力提供' },
+    { cat:'曲线运动', name:'万有引力', latex:'F = GMm/r²', symbols:'G:引力常量 M,m:两物体质量 r:距离', note:'G=6.67×10⁻¹¹' },
+    { cat:'曲线运动', name:'天体运动', latex:'GMm/r² = mv²/r', symbols:'卫星绕行公式', note:'第一宇宙速度≈7.9km/s' },
+
+    { cat:'功和能', name:'功', latex:'W = Fxcosθ', symbols:'W:功(J) F:力 x:位移 θ:F与x夹角', note:'θ=90°不做功' },
+    { cat:'功和能', name:'功率', latex:'P = W/t = Fv', symbols:'P:功率(W) W:功 t:时间 F:力 v:速度', note:'v为平均速度时P为平均功率' },
+    { cat:'功和能', name:'动能', latex:'Ek = ½mv²', symbols:'Ek:动能(J) m:质量 v:速度', note:'标量' },
+    { cat:'功和能', name:'动能定理', latex:'W合 = ΔEk', symbols:'W合:合外力做功 ΔEk:动能变化', note:'只看首末状态' },
+    { cat:'功和能', name:'重力势能', latex:'Ep = mgh', symbols:'Ep:重力势能(J) m:质量 h:高度', note:'相对参考面' },
+    { cat:'功和能', name:'机械能守恒', latex:'Ek₁ + Ep₁ = Ek₂ + Ep₂', symbols:'初末机械能相等', note:'只有重力/弹力做功时成立' },
+
+    { cat:'动量', name:'动量', latex:'p = mv', symbols:'p:动量(kg·m/s) m:质量 v:速度', note:'矢量，方向同v' },
+    { cat:'动量', name:'动量定理', latex:'I = Δp = mv − mv₀', symbols:'I:冲量(N·s) Δp:动量变化', note:'I=Ft' },
+    { cat:'动量', name:'动量守恒', latex:'m₁v₁ + m₂v₂ = m₁v₁\' + m₂v₂\'', symbols:'系统合外力为零', note:'碰撞、爆炸问题核心' },
+
+    { cat:'电场', name:'库仑定律', latex:'F = kQ₁Q₂/r²', symbols:'k=9.0×10⁹ N·m²/C² Q:电荷 r:距离', note:'真空中点电荷' },
+    { cat:'电场', name:'电场强度', latex:'E = F/q = kQ/r²', symbols:'E:场强(N/C) F:电场力 q:试探电荷', note:'矢量' },
+    { cat:'电场', name:'电势差', latex:'U = W/q', symbols:'U:电势差(V) W:电场力做功 q:电荷', note:'Uab = φa − φb' },
+    { cat:'电场', name:'匀强电场', latex:'E = U/d', symbols:'E:场强 U:电势差 d:沿场方向距离', note:'平行板间' },
+    { cat:'电场', name:'电容', latex:'C = Q/U', symbols:'C:电容(F) Q:电荷 U:电压', note:'平行板：C=εS/(4πkd)' },
+    { cat:'电场', name:'带电粒子偏转', latex:'y = qUL²/(2mdv₀²)', symbols:'y:偏转距离 U:电压 L:板长 d:板距', note:'类平抛' },
+
+    { cat:'磁场', name:'安培力', latex:'F = BIL', symbols:'F:安培力(N) B:磁感应强度(T) I:电流 L:导线长', note:'B⊥I时' },
+    { cat:'磁场', name:'洛伦兹力', latex:'f = qvB', symbols:'f:洛伦兹力(N) q:电荷 v:速度 B:磁感应强度', note:'v⊥B时；不做功' },
+    { cat:'磁场', name:'带电粒子圆周运动', latex:'r = mv/(qB), T = 2πm/(qB)', symbols:'r:半径 T:周期', note:'磁场中做匀速圆周' },
+
+    { cat:'电磁感应', name:'法拉第定律', latex:'E = nΔΦ/Δt', symbols:'E:电动势(V) n:匝数 ΔΦ:磁通变化 Δt:时间', note:'感应电动势' },
+    { cat:'电磁感应', name:'动生电动势', latex:'E = BLv', symbols:'B:磁感应强度 L:导线长 v:速度', note:'B、L、v两两垂直' },
+    { cat:'电磁感应', name:'楞次定律', latex:'感应电流阻碍磁通变化', symbols:'"增反减同"', note:'判定感应电流方向' },
+
+    { cat:'交变电流', name:'正弦交变电流', latex:'e = E₀sin(ωt)', symbols:'e:瞬时值 E₀:峰值 ω=2π/T', note:'峰值 E₀=nBAω' },
+    { cat:'交变电流', name:'有效值', latex:'E = E₀/√2', symbols:'E:有效值 E₀:峰值', note:'仅正弦交流' },
+    { cat:'交变电流', name:'理想变压器', latex:'U₁/U₂ = n₁/n₂ = I₂/I₁', symbols:'U:电压 n:匝数 I:电流', note:'功率不变' },
+
+    { cat:'热学', name:'理想气体状态方程', latex:'pV/T = 恒量', symbols:'p:压强 V:体积 T:热力学温度(K)', note:'T = t + 273.15' },
+    { cat:'热学', name:'热力学第一定律', latex:'ΔU = Q + W', symbols:'ΔU:内能变化 Q:吸热 W:做功', note:'W为外界对气体做功' },
+
+    { cat:'光学', name:'折射定律', latex:'n = sinθ₁/sinθ₂', symbols:'n:折射率 θ₁:入射角 θ₂:折射角', note:'光疏→光密 n>1' },
+    { cat:'光学', name:'全反射临界角', latex:'sinC = 1/n', symbols:'C:临界角 n:折射率', note:'光密→光疏' },
+    { cat:'光学', name:'双缝干涉', latex:'Δx = Lλ/d', symbols:'Δx:条纹间距 L:屏距 λ:波长 d:缝距', note:'相邻亮纹间距' },
+
+    { cat:'近代物理', name:'光电效应方程', latex:'Ekm = hν − W₀', symbols:'Ekm:最大初动能 h:普朗克常量 ν:频率 W₀:逸出功', note:'h=6.63×10⁻³⁴ J·s' },
+    { cat:'近代物理', name:'光子能量', latex:'E = hν = hc/λ', symbols:'E:光子能量 ν:频率 λ:波长 c:光速', note:'' },
+    { cat:'近代物理', name:'质能方程', latex:'E = mc²', symbols:'E:能量 m:质量 c:光速', note:'核反应能量来源' },
+    { cat:'近代物理', name:'玻尔能级', latex:'hν = Eₘ − Eₙ', symbols:'Eₘ,Eₙ:两能级能量', note:'跃迁条件' }
+  ];
+
+  const CATS = ['全部', ...Array.from(new Set(FORMULAS.map(f => f.cat)))];
+  let activeCat = '全部';
+  let keyword = '';
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function renderTabs(){
+    const box = container.querySelector('#gsTabs');
+    box.innerHTML = '';
+    for(const c of CATS){
+      const b = document.createElement('button');
+      b.textContent = c;
+      const on = c === activeCat;
+      b.style.cssText = 'flex-shrink:0;padding:8px 14px;border-radius:20px;border:none;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .2s,color .2s;background:' + (on ? '#0a84ff' : '#1c1c1e') + ';color:' + (on ? '#fff' : '#8e8e93');
+      b.addEventListener('click', () => { activeCat = c; renderTabs(); renderList(); });
+      box.appendChild(b);
+    }
+  }
+
+  function renderList(){
+    const list = container.querySelector('#gsList');
+    const kw = keyword.trim().toLowerCase();
+    const filtered = FORMULAS.filter(f => {
+      if(activeCat !== '全部' && f.cat !== activeCat) return false;
+      if(!kw) return true;
+      return (f.name + f.latex + f.symbols + f.note + f.cat).toLowerCase().includes(kw);
+    });
+
+    if(filtered.length === 0){
+      list.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#8e8e93;font-size:14px">没有找到匹配的公式<br><span style="font-size:12px">换个关键词试试</span></div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    let lastCat = null;
+    for(const f of filtered){
+      if(f.cat !== lastCat && activeCat === '全部'){
+        const h = document.createElement('div');
+        h.style.cssText = 'font-size:12px;font-weight:700;color:#8e8e93;letter-spacing:1px;margin:16px 4px 8px;text-transform:uppercase';
+        h.textContent = f.cat;
+        list.appendChild(h);
+        lastCat = f.cat;
+      }
+      const card = document.createElement('div');
+      card.style.cssText = 'background:#1c1c1e;border-radius:16px;padding:16px;margin-bottom:10px;cursor:pointer';
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px">
+          <div style="font-size:15px;font-weight:600;color:#fff">${escapeHtml(f.name)}</div>
+          <div style="font-size:11px;color:#8e8e93;background:#2c2c2e;padding:2px 8px;border-radius:20px;flex-shrink:0">${escapeHtml(f.cat)}</div>
+        </div>
+        <div style="font-size:18px;font-family:monospace;color:#5ac8fa;background:rgba(10,132,255,.08);padding:10px 12px;border-radius:10px;margin-bottom:10px;word-break:break-all;line-height:1.5">${escapeHtml(f.latex)}</div>
+        <div style="font-size:12px;color:#8e8e93;line-height:1.6">${escapeHtml(f.symbols)}</div>
+        ${f.note ? '<div style="font-size:12px;color:#ff9f0a;margin-top:6px">💡 ' + escapeHtml(f.note) + '</div>' : ''}
+      `;
+      card.addEventListener('click', () => {
+        const text = f.name + '：' + f.latex + '\n' + f.symbols + (f.note ? '\n💡 ' + f.note : '');
+        navigator.clipboard.writeText(text).then(() => {
+          const tip = document.createElement('div');
+          tip.textContent = '✅ 已复制';
+          tip.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#30d158;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;font-weight:600;z-index:9999;pointer-events:none';
+          document.body.appendChild(tip);
+          setTimeout(() => tip.remove(), 1200);
+        }).catch(() => alert('复制失败'));
+      });
+      list.appendChild(card);
+    }
+  }
+
+  container.querySelector('#gsSearch').addEventListener('input', e => { keyword = e.target.value; renderList(); });
+  renderTabs();
+  renderList();
+};
+</script>
+<script>
+// ============================================================
+// 追及相遇计算器 —— 独立模块
+// ============================================================
+window.__open_zhuiji = function(container){
+  container.innerHTML = `
+    <div style="padding:16px;max-width:640px;margin:0 auto;padding-bottom:40px">
+      <div style="background:#1c1c1e;border-radius:16px;padding:14px;margin-bottom:12px">
+        <div style="font-size:12px;color:#8e8e93;margin-bottom:8px;font-weight:600">场景</div>
+        <select id="zjScene" style="width:100%;padding:12px 14px;border-radius:12px;border:none;background:#2c2c2e;color:#fff;font-size:15px;font-family:inherit;outline:none">
+          <option value="a2u">匀加速追匀速（如警车追匀速车）</option>
+          <option value="u2d">匀速追匀减速（后车匀速，前车刹车）</option>
+          <option value="face">相向运动（两车对开）</option>
+          <option value="circle">环形追击（同向绕圈）</option>
+          <option value="custom">自定义（自己填A、B两物体）</option>
+        </select>
+        <div id="zjDesc" style="font-size:12px;color:#8e8e93;margin-top:10px;line-height:1.6"></div>
+      </div>
+
+      <div id="zjInputs" style="background:#1c1c1e;border-radius:16px;padding:14px;margin-bottom:12px"></div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button id="zjCalc" style="flex:1;padding:14px;border-radius:14px;border:none;background:#0a84ff;color:#fff;font-size:15px;font-weight:600;font-family:inherit">📐 计算</button>
+        <button id="zjReset" style="flex:1;padding:14px;border-radius:14px;border:none;background:#2c2c2e;color:#fff;font-size:15px;font-weight:600;font-family:inherit">↺ 重置</button>
+      </div>
+
+      <div id="zjResult"></div>
+    </div>`;
+
+  const sceneEl = container.querySelector('#zjScene');
+  const descEl = container.querySelector('#zjDesc');
+  const inputsEl = container.querySelector('#zjInputs');
+  const resultEl = container.querySelector('#zjResult');
+
+  const SCENES = {
+    a2u: {
+      desc: '物体A匀加速（初速v₀A，加速度a）；物体B匀速（v₀B）。A在B后方距离d处开始追。',
+      fields: [
+        { key:'vA', label:'A 初速度 v₀A (m/s)', def:0 },
+        { key:'aA', label:'A 加速度 a (m/s²)', def:2 },
+        { key:'vB', label:'B 速度 vB (m/s)', def:10 },
+        { key:'d',  label:'初始距离 d (m)', def:20 }
+      ]
+    },
+    u2d: {
+      desc: '物体A匀速（vA）；物体B以初速v₀B、加速度aB匀减速。A在B后方d处。',
+      fields: [
+        { key:'vA',  label:'A 速度 vA (m/s)', def:20 },
+        { key:'vB',  label:'B 初速度 v₀B (m/s)', def:15 },
+        { key:'aB',  label:'B 加速度 aB (m/s²，减速填负数)', def:-2 },
+        { key:'d',   label:'初始距离 d (m)', def:10 }
+      ]
+    },
+    face: {
+      desc: 'A、B相向而行（面对面），初始相距 d。',
+      fields: [
+        { key:'vA', label:'A 速度 vA (m/s，向右为正)', def:5 },
+        { key:'vB', label:'B 速度 vB (m/s，向左为负)', def:-8 },
+        { key:'d',  label:'初始距离 d (m)', def:100 }
+      ]
+    },
+    circle: {
+      desc: '环形跑道周长L，A、B同地同向出发，A比B快，求A第一次追上B的时间。',
+      fields: [
+        { key:'vA', label:'A 速度 vA (m/s)', def:8 },
+        { key:'vB', label:'B 速度 vB (m/s)', def:5 },
+        { key:'L',  label:'跑道周长 L (m)', def:400 }
+      ]
+    },
+    custom: {
+      desc: '自己填A、B两物体的初速度和加速度（都是匀变速）。',
+      fields: [
+        { key:'vA', label:'A 初速度 v₀A (m/s)', def:0 },
+        { key:'aA', label:'A 加速度 aA (m/s²)', def:2 },
+        { key:'vB', label:'B 初速度 v₀B (m/s)', def:10 },
+        { key:'aB', label:'B 加速度 aB (m/s²)', def:0 },
+        { key:'d',  label:'初始距离 d (m)（A在B后方）', def:20 }
+      ]
+    }
+  };
+
+  let currentFields = [];
+
+  function fmt(n){
+    if(!isFinite(n)) return '∞';
+    if(Math.abs(n) < 1e-9) return '0';
+    return (Math.round(n * 1000) / 1000).toString();
+  }
+
+  function renderInputs(){
+    const s = SCENES[sceneEl.value];
+    descEl.textContent = s.desc;
+    currentFields = s.fields;
+    inputsEl.innerHTML = '';
+    for(const f of s.fields){
+      const row = document.createElement('div');
+      row.style.cssText = 'margin-bottom:10px';
+      row.innerHTML = `
+        <label style="display:block;font-size:12px;color:#8e8e93;margin-bottom:4px">${f.label}</label>
+        <input data-key="${f.key}" type="number" step="any" value="${f.def}" style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid transparent;background:#2c2c2e;color:#fff;font-size:15px;font-family:inherit;outline:none">
+      `;
+      inputsEl.appendChild(row);
+    }
+    resultEl.innerHTML = '';
+  }
+
+  function getVals(){
+    const vals = {};
+    inputsEl.querySelectorAll('input[data-key]').forEach(inp => {
+      vals[inp.dataset.key] = parseFloat(inp.value) || 0;
+    });
+    return vals;
+  }
+
+  function calcAndRender(){
+    const t = sceneEl.value;
+    const v = getVals();
+    let html = '';
+    try{
+      if(t === 'a2u') html = solveA2U(v);
+      else if(t === 'u2d') html = solveU2D(v);
+      else if(t === 'face') html = solveFace(v);
+      else if(t === 'circle') html = solveCircle(v);
+      else if(t === 'custom') html = solveCustom(v);
+    }catch(e){
+      html = '<div style="color:#ff375f;padding:20px;text-align:center">计算出错：' + e.message + '</div>';
+    }
+    resultEl.innerHTML = html;
+    drawVT();
+  }
+
+  // ---------- 求解器 ----------
+
+  function solveA2U(v){
+    // A: x_A = vA*t + 0.5*aA*t^2,  B: x_B = d + vB*t
+    // 追及条件: x_A = x_B
+    const { vA, aA, vB, d } = v;
+    const steps = [];
+    steps.push({ label:'建立坐标', text:'设A初始位置 x=0，B初始位置 x=' + fmt(d) + ' m' });
+    steps.push({ label:'A 的位移', text:'x_A = v₀A·t + ½at² = ' + fmt(vA) + 't + ½·' + fmt(aA) + 't²' });
+    steps.push({ label:'B 的位移', text:'x_B = d + vB·t = ' + fmt(d) + ' + ' + fmt(vB) + 't' });
+    steps.push({ label:'追及条件', text:'x_A = x_B，即 ' + fmt(vA) + 't + ½·' + fmt(aA) + 't² = ' + fmt(d) + ' + ' + fmt(vB) + 't' });
+
+    // 0.5*aA*t^2 + (vA - vB)*t - d = 0
+    const A = 0.5 * aA, B = vA - vB, C = -d;
+    let tMeet = null;
+    if(Math.abs(A) < 1e-9){
+      if(Math.abs(B) < 1e-9){ tMeet = null; }
+      else tMeet = -C / B;
+    }else{
+      const D = B*B - 4*A*C;
+      if(D < 0) tMeet = null;
+      else{
+        const t1 = (-B + Math.sqrt(D)) / (2*A);
+        const t2 = (-B - Math.sqrt(D)) / (2*A);
+        const candidates = [t1, t2].filter(x => x > 0).sort((a,b) => a-b);
+        tMeet = candidates.length ? candidates[0] : null;
+      }
+    }
+
+    // 最大距离：vA + aA*t = vB → t* = (vB - vA)/aA
+    let tMaxD = null, maxD = null;
+    if(Math.abs(aA) > 1e-9){
+      tMaxD = (vB - vA) / aA;
+      if(tMaxD > 0){
+        maxD = (d + vB*tMaxD) - (vA*tMaxD + 0.5*aA*tMaxD*tMaxD);
+      }
+    }
+
+    let out = '';
+    if(tMeet === null){
+      out += resultLine('⚠️ 追不上', '以当前参数，A 永远追不上 B。', '#ff9f0a');
+    }else{
+      const xMeet = vA*tMeet + 0.5*aA*tMeet*tMeet;
+      steps.push({ label:'解方程', text:'½·' + fmt(aA) + 't² + (' + fmt(vA) + '−' + fmt(vB) + ')t − ' + fmt(d) + ' = 0' });
+      steps.push({ label:'求根', text:'t = ' + fmt(tMeet) + ' s（取正根）' });
+      steps.push({ label:'追及位置', text:'x = ' + fmt(xMeet) + ' m' });
+      out += resultLine('✅ 追上时间', 't = ' + fmt(tMeet) + ' s', '#30d158');
+      out += resultLine('追及位置', 'x = ' + fmt(xMeet) + ' m（相对A出发点）', '#0a84ff');
+    }
+    if(maxD !== null){
+      out += resultLine('最大距离', fmt(maxD) + ' m（在 t = ' + fmt(tMaxD) + ' s 时）', '#bf5af2');
+      steps.push({ label:'最大距离', text:'当 vA = vB 时距离最大，t* = (' + fmt(vB) + '−' + fmt(vA) + ')/' + fmt(aA) + ' = ' + fmt(tMaxD) + ' s，最大距离 ' + fmt(maxD) + ' m' });
+    }
+
+    return out + stepsHTML(steps) + vtCanvasHTML([
+      { label:'A', v0:vA, a:aA, color:'#0a84ff' },
+      { label:'B', v0:vB, a:0, color:'#ff9f0a', x0:d }
+    ], 'a2u', tMeet);
+  }
+
+  function solveU2D(v){
+    const { vA, vB, aB, d } = v;
+    const steps = [];
+    steps.push({ label:'A 的位移', text:'x_A = vA·t = ' + fmt(vA) + 't' });
+    steps.push({ label:'B 的位移', text:'x_B = d + v₀B·t + ½·aB·t² = ' + fmt(d) + ' + ' + fmt(vB) + 't + ½·' + fmt(aB) + 't²' });
+    steps.push({ label:'追及条件', text:'x_A = x_B' });
+
+    // vA*t = d + vB*t + 0.5*aB*t^2
+    // 0.5*aB*t^2 + (vB - vA)*t + d = 0
+    const A = 0.5*aB, B = vB - vA, C = d;
+    let tMeet = null;
+    if(Math.abs(A) < 1e-9){
+      if(Math.abs(B) > 1e-9){
+        const t0 = -C/B;
+        if(t0 > 0) tMeet = t0;
+      }
+    }else{
+      const D = B*B - 4*A*C;
+      if(D >= 0){
+        const t1 = (-B + Math.sqrt(D)) / (2*A);
+        const t2 = (-B - Math.sqrt(D)) / (2*A);
+        const candidates = [t1, t2].filter(x => x > 0).sort((a,b)=>a-b);
+        tMeet = candidates.length ? candidates[0] : null;
+      }
+    }
+
+    // 最小距离：vA = vB + aB*t → t* = (vA - vB)/aB
+    let tMinD = null, minD = null;
+    if(Math.abs(aB) > 1e-9){
+      tMinD = (vA - vB) / aB;
+      if(tMinD > 0){
+        minD = (d + vB*tMinD + 0.5*aB*tMinD*tMinD) - vA*tMinD;
+      }
+    }
+
+    let out = '';
+    if(tMeet === null){
+      out += resultLine('⚠️ 追不上', 'B 先停下（或速度始终≥A），A 追不上 B。', '#ff9f0a');
+    }else{
+      const xMeet = vA * tMeet;
+      steps.push({ label:'求根', text:'t = ' + fmt(tMeet) + ' s' });
+      steps.push({ label:'追及位置', text:'x = ' + fmt(xMeet) + ' m' });
+      out += resultLine('✅ 追上时间', 't = ' + fmt(tMeet) + ' s', '#30d158');
+      out += resultLine('追及位置', 'x = ' + fmt(xMeet) + ' m（相对A出发点）', '#0a84ff');
+    }
+    if(minD !== null){
+      out += resultLine('最小距离', fmt(minD) + ' m（在 t = ' + fmt(tMinD) + ' s 时）', '#bf5af2');
+      steps.push({ label:'最小距离', text:'速度相等时距离最小，t* = ' + fmt(tMinD) + ' s，最小距离 ' + fmt(minD) + ' m' });
+      if(minD <= 0){
+        out += resultLine('⚠️ 会相撞', '最小距离 ≤ 0，说明会碰撞', '#ff375f');
+      }
+    }
+
+    return out + stepsHTML(steps) + vtCanvasHTML([
+      { label:'A', v0:vA, a:0, color:'#0a84ff' },
+      { label:'B', v0:vB, a:aB, color:'#ff9f0a', x0:d }
+    ], 'u2d', tMeet);
+  }
+
+  function solveFace(v){
+    const { vA, vB, d } = v;
+    // A向右，B向左：相对速度 |vA - vB|? 相向速度 = vA + |vB|
+    // 相遇时间 t = d / (vA - vB)（vB为负，所以 vA - vB = vA + |vB|）
+    const rel = vA - vB;
+    const steps = [];
+    steps.push({ label:'相向速度', text:'相对速度 = vA − vB = ' + fmt(vA) + ' − (' + fmt(vB) + ') = ' + fmt(rel) + ' m/s' });
+    steps.push({ label:'相遇时间', text:'t = d / 相对速度 = ' + fmt(d) + ' / ' + fmt(rel) + ' = ' + fmt(d / rel) + ' s' });
+    const t = d / rel;
+    const out = resultLine('✅ 相遇时间', 't = ' + fmt(t) + ' s', '#30d158')
+              + resultLine('A 走过', fmt(vA * t) + ' m', '#0a84ff')
+              + resultLine('B 走过', fmt(Math.abs(vB) * t) + ' m', '#ff9f0a');
+    return out + stepsHTML(steps);
+  }
+
+  function solveCircle(v){
+    const { vA, vB, L } = v;
+    const rel = vA - vB;
+    if(rel <= 0){
+      return resultLine('⚠️ 追不上', 'A 速度 ≤ B 速度，同向绕圈追不上。', '#ff9f0a');
+    }
+    const t = L / rel;
+    const steps = [
+      { label:'相对速度', text:'vA − vB = ' + fmt(vA) + ' − ' + fmt(vB) + ' = ' + fmt(rel) + ' m/s' },
+      { label:'追上条件', text:'A 比 B 多跑一整圈 L 就追上' },
+      { label:'时间', text:'t = L / (vA−vB) = ' + fmt(L) + ' / ' + fmt(rel) + ' = ' + fmt(t) + ' s' }
+    ];
+    return resultLine('✅ 第一次追上', 't = ' + fmt(t) + ' s', '#30d158')
+         + resultLine('A 跑过', fmt(vA*t) + ' m（' + fmt(vA*t/L) + ' 圈）', '#0a84ff')
+         + resultLine('B 跑过', fmt(vB*t) + ' m（' + fmt(vB*t/L) + ' 圈）', '#ff9f0a')
+         + stepsHTML(steps);
+  }
+
+  function solveCustom(v){
+    const { vA, aA, vB, aB, d } = v;
+    const A = 0.5*(aA-aB), B = vA-vB, C = -d;
+    const steps = [
+      { label:'A 的位移', text:'x_A = ' + fmt(vA) + 't + ½·' + fmt(aA) + 't²' },
+      { label:'B 的位移', text:'x_B = ' + fmt(d) + ' + ' + fmt(vB) + 't + ½·' + fmt(aB) + 't²' },
+      { label:'追及条件', text:'x_A = x_B' }
+    ];
+    let tMeet = null;
+    if(Math.abs(A) < 1e-9){
+      if(Math.abs(B) > 1e-9){
+        const t0 = -C/B;
+        if(t0 > 0) tMeet = t0;
+      }
+    }else{
+      const D = B*B - 4*A*C;
+      if(D >= 0){
+        const t1 = (-B + Math.sqrt(D))/(2*A);
+        const t2 = (-B - Math.sqrt(D))/(2*A);
+        const cs = [t1,t2].filter(x=>x>0).sort((a,b)=>a-b);
+        tMeet = cs.length ? cs[0] : null;
+      }
+    }
+
+    let out = '';
+    if(tMeet === null){
+      out += resultLine('⚠️ 追不上', '方程无正根，追不上。', '#ff9f0a');
+    }else{
+      const xMeet = vA*tMeet + 0.5*aA*tMeet*tMeet;
+      out += resultLine('✅ 追上时间', 't = ' + fmt(tMeet) + ' s', '#30d158');
+      out += resultLine('追及位置', 'x = ' + fmt(xMeet) + ' m', '#0a84ff');
+      steps.push({ label:'求解', text:'t = ' + fmt(tMeet) + ' s，x = ' + fmt(xMeet) + ' m' });
+    }
+
+    return out + stepsHTML(steps) + vtCanvasHTML([
+      { label:'A', v0:vA, a:aA, color:'#0a84ff' },
+      { label:'B', v0:vB, a:aB, color:'#ff9f0a', x0:d }
+    ], 'custom', tMeet);
+  }
+
+  function resultLine(title, val, color){
+    return '<div style="background:#1c1c1e;border-radius:14px;padding:14px;margin-bottom:10px;border-left:3px solid ' + color + '"><div style="font-size:12px;color:#8e8e93;margin-bottom:4px">' + title + '</div><div style="font-size:17px;font-weight:700;color:' + color + '">' + val + '</div></div>';
+  }
+
+  function stepsHTML(steps){
+    let h = '<div style="background:#1c1c1e;border-radius:14px;padding:14px;margin-bottom:12px"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px">📝 解题步骤</div>';
+    for(const s of steps){
+      h += '<div style="margin-bottom:10px"><div style="font-size:11px;color:#8e8e93;margin-bottom:3px">' + s.label + '</div><div style="font-size:13px;color:#fff;line-height:1.6;font-family:monospace;word-break:break-all">' + s.text + '</div></div>';
+    }
+    h += '</div>';
+    return h;
+  }
+
+  // ---------- v-t 图 ----------
+  let vtData = null;
+  function vtCanvasHTML(lines, type, tMeet){
+    vtData = { lines, type, tMeet };
+    return '<div style="background:#1c1c1e;border-radius:14px;padding:14px;margin-bottom:12px"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px">📈 v-t 图</div><canvas id="zjVT" width="600" height="320" style="width:100%;height:auto;background:#0e0e0e;border-radius:10px"></canvas><div style="font-size:11px;color:#8e8e93;margin-top:8px;line-height:1.5">蓝线 = A，橙线 = B。两条线交点是速度相等的时刻（距离最大/最小的临界点）。</div></div>';
+  }
+
+  function drawVT(){
+    if(!vtData) return;
+    const cv = container.querySelector('#zjVT');
+    if(!cv) return;
+    const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const { lines, tMeet } = vtData;
+
+    let tMax = 10;
+    if(tMeet && tMeet > 0) tMax = tMeet * 1.3;
+    else tMax = 10;
+    tMax = Math.max(tMax, 5);
+
+    let vMin = 0, vMax = 0;
+    for(const L of lines){
+      const vAtTMax = L.v0 + L.a * tMax;
+      vMin = Math.min(vMin, L.v0, vAtTMax);
+      vMax = Math.max(vMax, L.v0, vAtTMax);
+    }
+    if(vMax === vMin){ vMax = vMin + 1; }
+    const vPad = (vMax - vMin) * 0.15;
+    vMin -= vPad; vMax += vPad;
+
+    const padL = 50, padR = 20, padT = 20, padB = 40;
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
+
+    const x2px = t => padL + (t / tMax) * plotW;
+    const y2px = v => padT + plotH - ((v - vMin) / (vMax - vMin)) * plotH;
+
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT);
+    ctx.lineTo(padL, padT + plotH);
+    ctx.lineTo(padL + plotW, padT + plotH);
+    ctx.stroke();
+
+    ctx.fillStyle = '#8e8e93';
+    ctx.font = '11px -apple-system,sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for(let i = 0; i <= 4; i++){
+      const v = vMin + (vMax - vMin) * i / 4;
+      const py = y2px(v);
+      ctx.fillText(Math.round(v), padL - 6, py);
+      ctx.strokeStyle = '#1f1f1f';
+      ctx.beginPath(); ctx.moveTo(padL, py); ctx.lineTo(padL + plotW, py); ctx.stroke();
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for(let i = 0; i <= 5; i++){
+      const t = tMax * i / 5;
+      const px = x2px(t);
+      ctx.fillText(Math.round(t), px, padT + plotH + 6);
+    }
+    ctx.textAlign = 'left';
+    ctx.fillText('t/s', padL + plotW + 4, padT + plotH + 6);
+    ctx.fillText('v (m/s)', padL + 4, padT - 14);
+
+    for(const L of lines){
+      ctx.strokeStyle = L.color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(x2px(0), y2px(L.v0));
+      const vEnd = L.v0 + L.a * tMax;
+      ctx.lineTo(x2px(tMax), y2px(vEnd));
+      ctx.stroke();
+
+      const lx = x2px(tMax);
+      const ly = y2px(vEnd);
+      ctx.fillStyle = L.color;
+      ctx.font = 'bold 12px -apple-system,sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(L.label, lx - 4, ly - 4);
+    }
+
+    if(tMeet && tMeet > 0 && tMeet <= tMax){
+      const px = x2px(tMeet);
+      ctx.strokeStyle = '#30d158';
+      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px, padT);
+      ctx.lineTo(px, padT + plotH);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#30d158';
+      ctx.font = 'bold 11px -apple-system,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText('t=' + fmt(tMeet) + 's', px, padT + 4);
+    }
+  }
+
+  sceneEl.addEventListener('change', renderInputs);
+  container.querySelector('#zjCalc').addEventListener('click', calcAndRender);
+  container.querySelector('#zjReset').addEventListener('click', renderInputs);
+
+  renderInputs();
+};
+</script>
+<script>
+// ============================================================
+// 假报告生成器 —— 独立模块
+// ============================================================
+window.__open_jiabaogao = function(container){
+  container.innerHTML = `
+    <div style="padding:16px;max-width:640px;margin:0 auto;padding-bottom:40px">
+      <div style="background:#1c1c1e;border-radius:16px;padding:14px;margin-bottom:12px">
+        <div style="font-size:12px;color:#8e8e93;margin-bottom:6px;font-weight:600">报告主题</div>
+        <input id="bgTitle" placeholder="例：关于昨晚没洗碗的调查报告" style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid transparent;background:#2c2c2e;color:#fff;font-size:15px;font-family:inherit;outline:none;margin-bottom:12px">
+        <div style="font-size:12px;color:#8e8e93;margin-bottom:6px;font-weight:600">报送对象</div>
+        <input id="bgTo" placeholder="例：全家人 / 我妈 / 班主任" style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid transparent;background:#2c2c2e;color:#fff;font-size:15px;font-family:inherit;outline:none;margin-bottom:12px">
+        <div style="font-size:12px;color:#8e8e93;margin-bottom:6px;font-weight:600">调查人</div>
+        <input id="bgFrom" placeholder="例：张三" style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid transparent;background:#2c2c2e;color:#fff;font-size:15px;font-family:inherit;outline:none">
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button id="bgGen" style="flex:1;padding:14px;border-radius:14px;border:none;background:#c0392b;color:#fff;font-size:15px;font-weight:600;font-family:inherit">📋 生成报告</button>
+        <button id="bgReset" style="flex:1;padding:14px;border-radius:14px;border:none;background:#2c2c2e;color:#fff;font-size:15px;font-weight:600;font-family:inherit">↺ 重置</button>
+      </div>
+
+      <div id="bgResult"></div>
+    </div>`;
+
+  const titleEl = container.querySelector('#bgTitle');
+  const toEl = container.querySelector('#bgTo');
+  const fromEl = container.querySelector('#bgFrom');
+  const resultEl = container.querySelector('#bgResult');
+
+  function pad(n){ return n < 10 ? '0' + n : '' + n; }
+  function today(){
+    const d = new Date();
+    return d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日';
+  }
+  function docNumber(){
+    const d = new Date();
+    return '〔' + d.getFullYear() + '〕第 ' + (Math.floor(Math.random()*900)+100) + ' 号';
+  }
+
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  const OPENINGS = [
+    '为深入贯彻落实相关要求，切实维护家庭和谐稳定，现将有关情况报告如下：',
+    '根据上级指示精神，本着实事求是、严肃认真的原则，现将调查情况汇报如下：',
+    '针对近期反映的突出问题，我方高度重视，立即组织专人进行了深入调查，现将结果报告如下：',
+    '经研究决定，现将有关事宜的调查研究情况，郑重报告如下：'
+  ];
+  const BODY1 = [
+    '一、基本情况。经初步核查，事件起因较为明确，涉及范围有限，但影响不可忽视。当事人（方）态度尚未完全端正，存在一定侥幸心理。',
+    '一、调查过程。我方通过现场勘查、走访询问、调取资料等方式，全面掌握了第一手情况，并进行了认真梳理分析。',
+    '一、事件经过。事发当时，情况较为突然，相关方面未能及时作出有效应对，导致事态出现一定程度的扩大。'
+  ];
+  const BODY2 = [
+    '二、存在的问题。主要表现在：思想认识不到位，责任落实不扎实，工作作风不够严谨，存在敷衍应付、得过且过的现象。',
+    '二、原因分析。究其原因，既有客观因素，也有主观原因，主要是重视程度不够、措施不够有力、协调配合不够到位。',
+    '二、主要问题。一是责任意识淡薄，二是执行力度不足，三是长效机制尚未建立，四是监督约束有待加强。'
+  ];
+  const BODY3 = [
+    '三、下一步措施。一是提高思想认识，增强责任感紧迫感；二是明确任务分工，层层压实责任；三是健全制度机制，确保工作落实到位；四是加强督促检查，严肃追究相关责任。',
+    '三、处理意见。建议当事方深刻反思、限期整改，并在规定时间内报送书面检查。逾期不改的，将依据相关规定严肃处理。',
+    '三、工作要求。请各有关方面高度重视，举一反三，立即行动，务必于近日内取得实质性进展，并将落实情况及时上报。'
+  ];
+  const CLOSINGS = [
+    '特此报告。',
+    '以上报告，请审阅。',
+    '专此报告，请批示。',
+    '妥否，请指示。'
+  ];
+
+  function generate(){
+    const title = titleEl.value.trim() || '关于近期有关情况的调查报告';
+    const to = toEl.value.trim() || '有关部门';
+    const from = fromEl.value.trim() || '调查组';
+
+    const report = {
+      num: docNumber(),
+      title: title,
+      to: to,
+      from: from,
+      date: today(),
+      paragraphs: [
+        pick(OPENINGS),
+        pick(BODY1),
+        pick(BODY2),
+        pick(BODY3),
+        pick(CLOSINGS)
+      ]
+    };
+
+    resultEl.innerHTML = `
+      <div id="bgPaper" style="background:#fdfcf7;color:#1a1a1a;border-radius:8px;padding:28px 22px;box-shadow:0 8px 30px rgba(0,0,0,.4);font-family:'Songti SC','SimSun',serif;line-height:1.9">
+        <div style="text-align:center;color:#c0392b;font-size:26px;font-weight:900;letter-spacing:8px;font-family:'STKaiti','KaiTi',serif;margin-bottom:8px">某 某 单 位 文 件</div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#c0392b;border-bottom:2px solid #c0392b;padding-bottom:6px;margin-bottom:14px;font-family:'STKaiti',serif">
+          <span>${report.num}</span>
+          <span>特急</span>
+        </div>
+        <div style="text-align:center;font-size:19px;font-weight:700;font-family:'STKaiti','KaiTi',serif;margin:18px 0 24px;letter-spacing:2px">${escapeHtml(report.title)}</div>
+        <div style="font-size:14px;margin-bottom:12px">${escapeHtml(report.to)}：</div>
+        <div style="text-indent:2em;font-size:14px;margin-bottom:10px">${escapeHtml(report.paragraphs[0])}</div>
+        <div style="text-indent:2em;font-size:14px;margin-bottom:10px">${escapeHtml(report.paragraphs[1])}</div>
+        <div style="text-indent:2em;font-size:14px;margin-bottom:10px">${escapeHtml(report.paragraphs[2])}</div>
+        <div style="text-indent:2em;font-size:14px;margin-bottom:10px">${escapeHtml(report.paragraphs[3])}</div>
+        <div style="text-indent:2em;font-size:14px;margin-bottom:20px">${escapeHtml(report.paragraphs[4])}</div>
+        <div style="text-align:right;font-size:14px;margin-bottom:6px">${escapeHtml(report.from)}</div>
+        <div style="text-align:right;font-size:14px">${report.date}</div>
+        <div style="margin-top:24px;padding-top:8px;border-top:1px dashed #bbb;font-size:10px;color:#888;text-align:center;font-family:sans-serif">本文件仅供娱乐，不具备任何法律效力</div>
+      </div>
+      <button id="bgSave" style="width:100%;margin-top:12px;padding:14px;border-radius:14px;border:none;background:#0a84ff;color:#fff;font-size:15px;font-weight:600;font-family:inherit">📸 长按或截图保存</button>
+    `;
+  }
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  container.querySelector('#bgGen').addEventListener('click', generate);
+  container.querySelector('#bgReset').addEventListener('click', () => {
+    titleEl.value = ''; toEl.value = ''; fromEl.value = ''; resultEl.innerHTML = '';
+  });
+};
+</script>
+<script>
+// ============================================================
+// 赛博墓志铭 —— 独立模块
+// ============================================================
+window.__open_muzhiming = function(container){
+  container.innerHTML = `
+    <div style="padding:16px;max-width:640px;margin:0 auto;padding-bottom:40px">
+      <div style="background:#1c1c1e;border-radius:16px;padding:14px;margin-bottom:12px">
+        <div style="font-size:12px;color:#8e8e93;margin-bottom:6px;font-weight:600">名字</div>
+        <input id="mzName" placeholder="例：张三" style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid transparent;background:#2c2c2e;color:#fff;font-size:15px;font-family:inherit;outline:none;margin-bottom:12px">
+        <div style="font-size:12px;color:#8e8e93;margin-bottom:6px;font-weight:600">墓志铭（不填自动生成）</div>
+        <textarea id="mzText" placeholder="例：此人一生，躺平且快乐" style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid transparent;background:#2c2c2e;color:#fff;font-size:15px;font-family:inherit;outline:none;margin-bottom:12px;min-height:60px;resize:vertical"></textarea>
+
+        <div style="font-size:12px;color:#8e8e93;margin-bottom:6px;font-weight:600">生卒年</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <button data-by="random" id="mzByRandom" style="flex:1;padding:10px;border-radius:12px;border:none;background:#0a84ff;color:#fff;font-size:13px;font-weight:600;font-family:inherit">🎲 随机</button>
+          <button data-by="custom" id="mzByCustom" style="flex:1;padding:10px;border-radius:12px;border:none;background:#2c2c2e;color:#8e8e93;font-size:13px;font-weight:600;font-family:inherit">✏️ 自定义</button>
+        </div>
+        <div id="mzCustomBox" style="display:none;gap:8px;margin-bottom:12px">
+          <input id="mzBirth" placeholder="生年 例：1990" style="flex:1;padding:10px 12px;border-radius:12px;border:1.5px solid transparent;background:#2c2c2e;color:#fff;font-size:14px;font-family:inherit;outline:none">
+          <input id="mzDeath" placeholder="卒年 例：2077" style="flex:1;padding:10px 12px;border-radius:12px;border:1.5px solid transparent;background:#2c2c2e;color:#fff;font-size:14px;font-family:inherit;outline:none">
+        </div>
+
+        <div style="font-size:12px;color:#8e8e93;margin-bottom:6px;font-weight:600">墓碑风格</div>
+        <div style="display:flex;gap:8px">
+          <button data-style="cn" class="mzStyle active" style="flex:1;padding:10px;border-radius:12px;border:none;background:#0a84ff;color:#fff;font-size:13px;font-weight:600;font-family:inherit">古风</button>
+          <button data-style="west" class="mzStyle" style="flex:1;padding:10px;border-radius:12px;border:none;background:#2c2c2e;color:#8e8e93;font-size:13px;font-weight:600;font-family:inherit">西式</button>
+          <button data-style="cyber" class="mzStyle" style="flex:1;padding:10px;border-radius:12px;border:none;background:#2c2c2e;color:#8e8e93;font-size:13px;font-weight:600;font-family:inherit">赛博</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button id="mzGen" style="flex:1;padding:14px;border-radius:14px;border:none;background:#8e8e93;color:#fff;font-size:15px;font-weight:600;font-family:inherit">🪦 刻碑</button>
+        <button id="mzReset" style="flex:1;padding:14px;border-radius:14px;border:none;background:#2c2c2e;color:#fff;font-size:15px;font-weight:600;font-family:inherit">↺ 重置</button>
+      </div>
+
+      <div id="mzResult"></div>
+    </div>`;
+
+  let byMode = 'random';
+  let styleMode = 'cn';
+
+  const nameEl = container.querySelector('#mzName');
+  const textEl = container.querySelector('#mzText');
+  const customBox = container.querySelector('#mzCustomBox');
+  const birthEl = container.querySelector('#mzBirth');
+  const deathEl = container.querySelector('#mzDeath');
+  const resultEl = container.querySelector('#mzResult');
+
+  const RANDOM_TEXTS = [
+    '此人一生，躺平且快乐',
+    '终于不用回消息了',
+    '来过，骂过，走了',
+    '这下真成永恒了',
+    '生而为人，我很抱歉……才怪',
+    '别哭，我只是去换个地方睡',
+    'WiFi密码：见墓碑背面',
+    '一世英名，毁于熬夜',
+    '此人已注销，感谢陪伴',
+    '下辈子还投胎，但要挑个有钱人家',
+    '请勿打扰，正在深度睡眠',
+    '一路走好，顺便带走了充电宝',
+    '这个人很懒，连墓志铭都没写',
+    '愿你我都好，在各自的世界里',
+    '所有没说的话，都刻在了风里'
+  ];
+  const RANDOM_NAME = ['张三','李四','王二','老六','小明','无名氏','某某某','你自己'];
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function randBirth(){ return Math.floor(Math.random()*60)+1950; }
+  function randDeath(y){ return y + Math.floor(Math.random()*90) + 10; }
+
+  function render(){
+    const name = nameEl.value.trim() || '无名氏';
+    const text = textEl.value.trim() || RANDOM_TEXTS[Math.floor(Math.random()*RANDOM_TEXTS.length)];
+
+    let birth, death;
+    if(byMode === 'random'){
+      birth = randBirth();
+      death = randDeath(birth);
+    }else{
+      birth = birthEl.value.trim() || '？';
+      death = deathEl.value.trim() || '？';
+    }
+    const lifespan = (typeof birth === 'number' && typeof death === 'number') ? (death - birth) : null;
+
+    let html = '';
+    if(styleMode === 'cn'){
+      html = `
+        <div style="padding:24px 16px;background:linear-gradient(180deg,#1a1a1a,#0d0d0d);border-radius:16px">
+          <div style="background:linear-gradient(180deg,#5a5751,#3a3733);border-radius:14px 14px 4px 4px;padding:32px 22px;max-width:360px;margin:0 auto;box-shadow:inset 0 0 40px rgba(0,0,0,.6),0 10px 30px rgba(0,0,0,.5);text-align:center;font-family:'STKaiti','KaiTi','Songti SC',serif;color:#e8e4d8">
+            <div style="font-size:22px;letter-spacing:6px;margin-bottom:10px;color:#c9b98a;font-weight:700">${escapeHtml(name)} 之 墓</div>
+            <div style="width:60%;height:1px;background:linear-gradient(90deg,transparent,#8a7f5e,transparent);margin:10px auto"></div>
+            <div style="font-size:13px;color:#a89870;margin-bottom:18px;letter-spacing:2px">${birth} — ${death}${lifespan ? '　享年 '+lifespan+' 岁' : ''}</div>
+            <div style="font-size:16px;line-height:1.9;color:#ddd6c3;font-style:italic;white-space:pre-wrap;word-break:break-word">${escapeHtml(text)}</div>
+            <div style="width:60%;height:1px;background:linear-gradient(90deg,transparent,#8a7f5e,transparent);margin:18px auto 0"></div>
+            <div style="font-size:12px;color:#7a7050;margin-top:12px">碑 立</div>
+          </div>
+          <div style="text-align:center;margin-top:14px;font-size:18px">🕯</div>
+        </div>`;
+    }else if(styleMode === 'west'){
+      html = `
+        <div style="padding:24px 16px;background:linear-gradient(180deg,#d6d9dc,#a8adb2);border-radius:16px">
+          <div style="background:linear-gradient(180deg,#e8eaec,#b8bcc0);border-radius:50% 50% 8px 8px/40% 40% 8px 8px;padding:38px 22px 30px;max-width:340px;margin:0 auto;box-shadow:inset 0 4px 20px rgba(0,0,0,.15),0 10px 30px rgba(0,0,0,.3);text-align:center;color:#2a2a2a;font-family:Georgia,'Times New Roman',serif">
+            <div style="font-size:18px;letter-spacing:3px;font-weight:700;margin-bottom:6px">${escapeHtml(name)}</div>
+            <div style="font-size:12px;color:#555;margin-bottom:16px">${birth} — ${death}${lifespan ? '　(Age '+lifespan+')' : ''}</div>
+            <div style="width:70%;height:1px;background:#999;margin:0 auto 16px"></div>
+            <div style="font-size:14px;line-height:1.8;font-style:italic;color:#333;white-space:pre-wrap;word-break:break-word">" ${escapeHtml(text)} "</div>
+            <div style="margin-top:20px;font-size:16px;color:#666">✝</div>
+          </div>
+        </div>`;
+    }else{
+      html = `
+        <div style="padding:24px 16px;background:#050510;border-radius:16px;position:relative;overflow:hidden">
+          <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,255,255,.05) 0,rgba(0,255,255,.05) 1px,transparent 1px,transparent 3px);pointer-events:none"></div>
+          <div style="background:linear-gradient(180deg,#0a0a1a,#000);border:2px solid #00ffff;border-radius:12px;padding:32px 22px;max-width:360px;margin:0 auto;box-shadow:0 0 30px rgba(0,255,255,.4),inset 0 0 30px rgba(0,255,255,.1);text-align:center;font-family:Consolas,monospace;color:#00ffff;position:relative;z-index:1">
+            <div style="font-size:11px;color:#ff00aa;letter-spacing:3px;margin-bottom:8px">[ USER OFFLINE ]</div>
+            <div style="font-size:20px;letter-spacing:3px;margin-bottom:8px;text-shadow:0 0 10px #00ffff;font-weight:700">${escapeHtml(name)}</div>
+            <div style="font-size:11px;color:#00ff88;margin-bottom:16px">${birth} :: ${death}${lifespan ? ' [ '+lifespan+'y ]' : ''}</div>
+            <div style="width:80%;height:1px;background:linear-gradient(90deg,transparent,#00ffff,transparent);margin:0 auto 16px"></div>
+            <div style="font-size:13px;line-height:1.8;color:#88ffff;white-space:pre-wrap;word-break:break-word">> ${escapeHtml(text)}<span style="animation:blink 1s infinite">_</span></div>
+            <div style="width:80%;height:1px;background:linear-gradient(90deg,transparent,#00ffff,transparent);margin:16px auto 0"></div>
+            <div style="font-size:10px;color:#ff00aa;margin-top:12px;letter-spacing:2px">// SYSTEM HALTED //</div>
+          </div>
+          <style>@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}</style>
+        </div>`;
+    }
+
+    resultEl.innerHTML = html + '<div style="text-align:center;font-size:11px;color:#8e8e93;margin-top:10px">长按截图保存</div>';
+  }
+
+  // 生卒年模式
+  container.querySelector('#mzByRandom').addEventListener('click', () => {
+    byMode = 'random';
+    container.querySelector('#mzByRandom').style.background = '#0a84ff';
+    container.querySelector('#mzByRandom').style.color = '#fff';
+    container.querySelector('#mzByCustom').style.background = '#2c2c2e';
+    container.querySelector('#mzByCustom').style.color = '#8e8e93';
+    customBox.style.display = 'none';
+  });
+  container.querySelector('#mzByCustom').addEventListener('click', () => {
+    byMode = 'custom';
+        container.querySelector('#mzByCustom').style.background = '#0a84ff';
+    container.querySelector('#mzByCustom').style.color = '#fff';
+    container.querySelector('#mzByRandom').style.background = '#2c2c2e';
+    container.querySelector('#mzByRandom').style.color = '#8e8e93';
+    customBox.style.display = 'flex';
+  });
+
+  // 风格切换
+  container.querySelectorAll('.mzStyle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      styleMode = btn.dataset.style;
+      container.querySelectorAll('.mzStyle').forEach(b => {
+        b.style.background = '#2c2c2e'; b.style.color = '#8e8e93';
+      });
+      btn.style.background = '#0a84ff'; btn.style.color = '#fff';
+    });
+  });
+
+  container.querySelector('#mzGen').addEventListener('click', render);
+  container.querySelector('#mzReset').addEventListener('click', () => {
+    nameEl.value = ''; textEl.value = ''; birthEl.value = ''; deathEl.value = '';
+    resultEl.innerHTML = '';
+  });
+};
+</script>
+</body>
+</html>
+
+  
